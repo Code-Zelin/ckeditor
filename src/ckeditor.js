@@ -68,6 +68,7 @@ import Underline from '@ckeditor/ckeditor5-basic-styles/src/underline.js';
 import WordCount from '@ckeditor/ckeditor5-word-count/src/wordcount.js';
 
 import Abbreviation from './plugins/abbreviation/index';					// ADDED
+import InternalLink from './plugins/internalLink/index';					// ADDED
 
 class Editor extends ClassicEditor {}
 
@@ -137,6 +138,7 @@ Editor.builtinPlugins = [
 	Underline,
 	WordCount,
 	Abbreviation,
+	InternalLink,
 ];
 
 // Editor configuration.
@@ -178,7 +180,8 @@ Editor.defaultConfig = {
 			'|',
 			'findAndReplace',
 			'|',
-			'abbreviation'
+			'abbreviation',
+			'internalLink'
 		]
 	},
 	language: 'zh-cn',

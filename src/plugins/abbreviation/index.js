@@ -1,11 +1,14 @@
-// abbreviation/abbreviation.js
+/**
+ * @license Copyright (c) 2003-2022, CKSource Holding sp. z o.o. All rights reserved.
+ * For licensing, see LICENSE.md.
+ */
 
+import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 import AbbreviationEditing from './editing';
 import AbbreviationUI from './ui';
-import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 
 export default class Abbreviation extends Plugin {
-    static get requires() {
-        return [ AbbreviationEditing, AbbreviationUI ];
-    }
+	static get requires() {
+		return [ AbbreviationEditing, AbbreviationUI ];
+	}
 }
