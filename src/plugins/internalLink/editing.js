@@ -7,6 +7,8 @@ import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 import AbbreviationCommand from './commend';
 import getRangeText from './utils.js';
 
+const defaultModelElement = 'paragraph';
+
 export default class AbbreviationEditing extends Plugin {
 	init() {
 		this._defineSchema();
@@ -23,66 +25,77 @@ export default class AbbreviationEditing extends Plugin {
 		// 栈, 使用栈记录[[]]包裹的内容, 遇到两次[[开始记录,到]]结束
 		// 遇到回车终止记录,重新开始
 		// 成功结束后,需要将[[xxx]]中的xxx解析,如果xxx是网址,则请求,并拿到title用a标签展示,否则不做处理
-		const stringStack = [];
+		// const stringStack = [];
 
-		let startSelection = null;
-		let prevStartStr = '';
-		let prevEndStr = '';
-		let isBegin = false;
-		this.editor.commands.get( 'input' ).on( 'execute', ( evt, args ) => {
+		// // let startSelection = null;
+		// let prevStartStr = '';
+		// let prevEndStr = '';
+		// let isBegin = false;
 
-			model.change(writer => {
-				console.log(writer)
+		 // If the enter command is added to the editor, alter its behavior.
+        // Enter at the end of a heading element should create a paragraph.
+        const editor = this.editor;
+        // const enterCommand = editor.commands.get('enter');
+        // const options = editor.config.get('heading.options');
+
+
+		const inputCommand = editor.commands.get( 'input' );
+
+		if (inputCommand) {
+			// 监听输入事件，当输入[，自动补全]，每次必然形成[]组合
+			this.listenTo(inputCommand, "execute", ( evt, data ) => {
+				// const positionParent = model.document.selection.getFirstPosition();
+
+				// console.log('input...', evt, data, positionParent);
+				// 输入
+				if (data && data[0] && data[0].text === '[') {			
+					model.change(writer => {
+						console.log("model change..", writer, data[0].selection);
+						// 插入文本
+						model.insertContent(writer.createText(']'));
+						// 调整被选择区域至当前字符处，也就是[后面，]前面
+						writer.setSelection( data[0].selection );
+					})
+				}
+
+
+
+
+				// else if (args && args[0] && args[0].text === ']' && prevStartStr === '[[') {
+				// 	// 如果是第一个], 记录一下,方便第二次进行对比
+				// 	if (prevEndStr === '') {
+				// 		prevEndStr = ']';
+				// 	} else if (prevEndStr === ']') {
+				// 		// 如果连续两个], 则说明当前输入结束,准备转化
+				// 		isBegin = false;
+				// 		prevEndStr = ']]'
+	
+				// 		const endSelection = args[0].selection
+				// 		console.log('终止了!', startSelection, endSelection)
+	
+				// 		const _range = model.createRange(startSelection.anchor, endSelection.anchor)
+				// 		console.log('editor.view', _range, getRangeText(_range))
+	
+				// 		// writer.setAttribute( 'internalLink', 'http://baidu.test', _range );
+	
+				// 		setTimeout(() => {
+				// 			this.editor.execute( 'addInternalLink', {
+				// 				link: getRangeText(_range).slice(1, -2),
+				// 				title: "test"
+				// 			} );
+				// 		}, 1000)
+						
+				// 		console.log("准备移除range")
+				// 		// model.writer.remove(_range);
+				// 		_range.deleteContents();
+				// 		_range.select(); 
+				// 		console.log("移除range完毕")
+				// 	}
+				// } else if (isBegin) {
+				// 	console.log("开始记录后的  正常输入");
+				// }
 			})
-			console.log('input...', evt, args );
-			if (args && args[0] && args[0].text === '[') {
-				if (prevStartStr === '') {
-					stringStack.push(args[0].selection);
-					startSelection = args[0].selection;
-					prevStartStr = '[';
-				} else if (prevStartStr === '[') {
-					prevStartStr += '[';
-					isBegin = true;
-				}
-			} else if (args && args[0] && args[0].text === ']' && prevStartStr === '[[') {
-				// 如果是第一个], 记录一下,方便第二次进行对比
-				if (prevEndStr === '') {
-					prevEndStr = ']';
-				} else if (prevEndStr === ']') {
-					// 如果连续两个], 则说明当前输入结束,准备转化
-					isBegin = false;
-					prevEndStr = ']]'
-
-					const endSelection = args[0].selection
-					console.log('终止了!', startSelection, endSelection)
-
-					const _range = model.createRange(startSelection.anchor, endSelection.anchor)
-					console.log('editor.view', _range, getRangeText(_range))
-
-					// writer.setAttribute( 'internalLink', 'http://baidu.test', _range );
-
-					setTimeout(() => {
-						this.editor.execute( 'addInternalLink', {
-							link: getRangeText(_range).slice(1, -2),
-							title: "test"
-						} );
-					}, 1000)
-					
-					console.log("准备移除range")
-					// model.writer.remove(_range);
-					_range.deleteContents();
-					_range.select(); 
-					console.log("移除range完毕")
-				}
-			} else if (isBegin) {
-				console.log("开始记录后的  正常输入");
-			} else {
-				console.log('未匹配的正常输入')
-				prevStartStr = '';
-				prevEndStr = '';
-				isBegin = false;
-			}
-		} );
+		}
 	}
 	_defineSchema() {
 		const schema = this.editor.model.schema;

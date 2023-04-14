@@ -41,7 +41,7 @@ import Link from '@ckeditor/ckeditor5-link/src/link.js';
 import LinkImage from '@ckeditor/ckeditor5-link/src/linkimage.js';
 import List from '@ckeditor/ckeditor5-list/src/list.js';
 import ListProperties from '@ckeditor/ckeditor5-list/src/listproperties.js';
-import Markdown from '@ckeditor/ckeditor5-markdown-gfm/src/markdown.js';
+
 import MediaEmbed from '@ckeditor/ckeditor5-media-embed/src/mediaembed.js';
 import MediaEmbedToolbar from '@ckeditor/ckeditor5-media-embed/src/mediaembedtoolbar.js';
 import Mention from '@ckeditor/ckeditor5-mention/src/mention.js';
@@ -69,6 +69,7 @@ import WordCount from '@ckeditor/ckeditor5-word-count/src/wordcount.js';
 
 import Abbreviation from './plugins/abbreviation/index';					// ADDED
 import InternalLink from './plugins/internalLink/index';					// ADDED
+import Markdown from './plugins/markdown-gfm/markdown.js';
 
 class Editor extends ClassicEditor {}
 
@@ -147,6 +148,8 @@ Editor.defaultConfig = {
 		items: [
 			'undo',
 			'redo',
+			'|',
+		'sourceEditing',
 			'|',
 			'heading',
 			'|',
