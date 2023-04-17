@@ -4,7 +4,6 @@
  */
 import ClassicEditor from '@ckeditor/ckeditor5-editor-classic/src/classiceditor.js';
 import Alignment from '@ckeditor/ckeditor5-alignment/src/alignment.js';
-import Autoformat from '@ckeditor/ckeditor5-autoformat/src/autoformat.js';
 import AutoImage from '@ckeditor/ckeditor5-image/src/autoimage.js';
 import AutoLink from '@ckeditor/ckeditor5-link/src/autolink.js';
 import Autosave from '@ckeditor/ckeditor5-autosave/src/autosave.js';
@@ -68,8 +67,9 @@ import Underline from '@ckeditor/ckeditor5-basic-styles/src/underline.js';
 import WordCount from '@ckeditor/ckeditor5-word-count/src/wordcount.js';
 
 import Abbreviation from './plugins/abbreviation/index';					// ADDED
-import InternalLink from './plugins/internalLink/index';					// ADDED
-import Markdown from './plugins/markdown-gfm/markdown.js';
+import InternalLink from './plugins/wiki/index';					// ADDED
+import Autoformat from './plugins//autoformat/autoformat';
+// import Markdown from './plugins/markdown-gfm/markdown.js';
 
 class Editor extends ClassicEditor {}
 
@@ -113,7 +113,7 @@ Editor.builtinPlugins = [
 	LinkImage,
 	List,
 	ListProperties,
-	Markdown,
+	// Markdown,
 	MediaEmbed,
 	MediaEmbedToolbar,
 	Mention,
@@ -184,7 +184,7 @@ Editor.defaultConfig = {
 			'findAndReplace',
 			'|',
 			'abbreviation',
-			'internalLink'
+			'wiki'
 		]
 	},
 	language: 'zh-cn',

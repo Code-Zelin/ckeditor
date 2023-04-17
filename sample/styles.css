@@ -498,3 +498,8 @@ footer {
 .ck.ck-toolbar.ck-toolbar_grouping>.ck-toolbar__items {
 	flex-wrap: wrap !important;
 }
+
+wiki {
+	background: #1a9aef;
+	color: #fff;
+}

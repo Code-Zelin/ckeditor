@@ -41,7 +41,11 @@ export default class GFMDataProcessor {
         const html = markdown2html(data);
 
         console.log("toView...", data, html);
-        return this._htmlDP.toView(html);
+
+        const view = this._htmlDP.toView(html)
+
+        console.log("vieeeeeeee..", view);
+        return view;
     }
     /**
      * Converts the provided {@link module:engine/view/documentfragment~DocumentFragment} to data format &mdash; in this
@@ -50,8 +54,14 @@ export default class GFMDataProcessor {
      * @returns Markdown string.
      */
     toData(viewFragment) {
+        console.log("todata....", viewFragment);
         const html = this._htmlDP.toData(viewFragment);
-        return html2markdown(html);
+
+        console.log("html....", html);
+        const markdown = html2markdown(html);
+
+        console.log("madddddd....", markdown);
+        return markdown;
     }
     /**
      * Registers a {@link module:engine/view/matcher~MatcherPattern} for view elements whose content should be treated as raw data

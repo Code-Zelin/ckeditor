@@ -6,6 +6,11 @@
  * @module markdown-gfm/markdown2html
  */
 import { marked } from 'marked';
+
+// import {markedEmoji} from "marked-emoji";
+import { Octokit } from "@octokit/rest";
+
+
 // Overrides.
 marked.use({
     tokenizer: {
@@ -29,78 +34,6 @@ marked.use({
     }
 });
 
-function customInternalLink() {
-    return {
-        extendsions: [
-            {
-                name: 'internalLink',
-                level: 'block',
-                start (src) {
-                    console.log("start....", src);
-                    return src.match(/\[\[/)
-                },
-                tokenizer (src, tokens) {
-                    const rule = /^\[\[([^\]]*)\]\]/
-                    const match = rule.exec(src)
-
-                    // match:: ['[[[[xxxx-xxxx]]', '[[xxxx-xxxx', index: 0, input: '[[[[xxxx-xxxx]]', groups: undefined]
-
-                    console.log('internalLink', src, tokens, match);
-
-                    console.log(this.lexer);
-                    if (match) {
-                      const token = {
-                        type: 'internalLink',
-                        raw: match[0],
-                        text: match[1],
-                        tokens: [],
-                      }
-                      return token
-                    }
-                },
-                renderer (token) {
-                    console.log("render....", token)
-                  return `<a href="${token.text}">${token.text}</a>`;
-                },
-            },
-            {
-                name: 'center',
-                level: 'block',
-                start (src) { return src.match(/<center>/) },
-                tokenizer (src, tokens) {
-                  const rule = /^<center>([\S\s]*)<\/center>/
-                  const match = rule.exec(src)
-                  if (match) {
-                    const token = {
-                      type: 'center',
-                      raw: match[0],
-                      text: match[1],
-                      tokens: [],
-                    }
-                    this.lexer.inline(token.text, token.tokens)
-                    return token
-                  }
-                },
-                renderer (token) {
-                  return `<center>${this.parser.parseInline(token.tokens)}</center>\n`
-                },
-            }, 
-        ],
-        // renderer: {
-        //     heading(text, level, raw, slugger) {
-        //         console.log('customInternalLink...', text, level);
-        //         const headingIdRegex = /(?: +|^)\[\[([a-z][\w-]*)\]\](?: +|$)/i;
-        //         const hasId = text.match(headingIdRegex);
-        //         if (!hasId) {
-        //             // fallback to original heading renderer
-        //             return false;
-        //         }
-        //         return `<a id="${hasId[1]}">${text.replace(headingIdRegex, '')}</h${level}>\n`;
-        //     }
-        // }
-    };
-}
-
 function customHeadingId() {
     return {
         renderer: {
@@ -117,13 +50,70 @@ function customHeadingId() {
     };
 }
 
-marked.use(customHeadingId());
-marked.use(customInternalLink());
+const defaultOptions = {
+    // emojis: {}, required
+    unicode: false
+};
 
-// console.log(marked);
+function markedInternalLink() {
+    return {
+        extensions: [{
+            name: 'internalLink',
+            level: 'inline',
+            start(src) {
+                console.log("start....", src);
+                return src.indexOf('[[')
+            },
+            tokenizer(src, tokens) {
+                const rule = /^\[\[([^\]]*)\]\]/
+                const match = rule.exec(src)
 
-// console.log("marked heading", marked("# heading {#custom-id}"))
-// console.log("marked internalLink", marked("[[[[xxxx-xxxx]]"))
+                // match:: ['[[[[xxxx-xxxx]]', '[[xxxx-xxxx', index: 0, input: '[[[[xxxx-xxxx]]', groups: undefined]
+
+                console.log('internalLink', src, tokens, match);
+
+                console.log(this.lexer);
+                if (match) {
+                    const token = {
+                        type: 'internalLink',
+                        raw: match[0],
+                        text: match[1],
+                        tokens: [],
+                    }
+                    return token
+                }
+            },
+            renderer(token) {
+                console.log("render....", token)
+                return `<wiki onClick="window.open(${token.text})" href="${token.text}" data-origin="${token.raw}">${token.text}</wiki>`;
+            },
+        },]
+    };
+}
+
+// marked.use(customHeadingId());
+// console.log("marked heading", marked.parse("# heading {#custom-id}"))
+
+// marked.use(markedInternalLink());
+// console.log("marked internalLink", marked.parse("[[[[xxxx-xxxx]]"))
+
+const renderer = {
+    heading(text, level) {
+        const escapedText = text.toLowerCase().replace(/[^\w]+/g, '-');
+
+        return `
+              <h${level}>
+                <a name="${escapedText}" class="anchor" href="#${escapedText}">
+                  <span class="header-link"></span>
+                </a>
+                ${text}
+              </h${level}>`;
+    }
+};
+
+marked.use({ renderer });
+
+console.log('# heading+', marked.parse('# heading+'));
 
 /**
  * Parses markdown string to an HTML.
@@ -132,11 +122,11 @@ marked.use(customInternalLink());
 export default function markdown2html(markdown) {
 
     const options = {
-        gfm: true,
-        breaks: true,
-        tables: true,
-        xhtml: true,
-        headerIds: false,
+        // gfm: true,
+        // breaks: true,
+        // tables: true,
+        // xhtml: true,
+        // headerIds: false,
     };
 
     console.log('markdown2html::', markdown);
