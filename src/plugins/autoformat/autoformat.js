@@ -142,7 +142,7 @@ export default class Autoformat extends Plugin {
         if (this.editor.commands.get("addWiki")) {
             console.log('has addwiki')
             const selection = this.editor.model.document.selection;
-            blockAutoformatEditing(this.editor, this, /\[\[([^\]]+)\]\]/, ({ match }) => {
+            blockAutoformatEditing(this.editor, this, /\[\[([^\]]*)\]\]/, ({ match }) => {
                 console.log('arguments...', match, selection.getFirstPosition());
 
                 this.editor.execute('addWiki', {

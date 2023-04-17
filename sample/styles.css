@@ -503,3 +503,7 @@ wiki {
 	background: #1a9aef;
 	color: #fff;
 }
+
+.ck-abbr-ul .ck.ck-button .ck-button__label{
+	display: block;
+}

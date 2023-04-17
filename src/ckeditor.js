@@ -69,7 +69,7 @@ import WordCount from '@ckeditor/ckeditor5-word-count/src/wordcount.js';
 import Abbreviation from './plugins/abbreviation/index';					// ADDED
 import InternalLink from './plugins/wiki/index';					// ADDED
 import Autoformat from './plugins//autoformat/autoformat';
-// import Markdown from './plugins/markdown-gfm/markdown.js';
+import Markdown from './plugins/markdown-gfm/markdown.js';
 
 class Editor extends ClassicEditor {}
 
@@ -113,7 +113,7 @@ Editor.builtinPlugins = [
 	LinkImage,
 	List,
 	ListProperties,
-	// Markdown,
+	Markdown,
 	MediaEmbed,
 	MediaEmbedToolbar,
 	Mention,
