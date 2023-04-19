@@ -72,7 +72,21 @@ export default class MentionEditing extends Plugin {
              */
             view: createViewMentionElement
         });
+        // 添加一个向下的解释器
+        // downcast: 编辑和数据向下转换
+        // conversion文档 （https://ckeditor.com/docs/ckeditor5/latest/api/module_engine_conversion_conversion-Conversion.html）
+        // editor.conversion.for("downcast") 返回一个 DowncastHelpers 实例 （https://ckeditor.com/docs/ckeditor5/latest/api/module_engine_conversion_downcasthelpers-DowncastHelpers.html）
+        // add( conversionHelper ) → DowncastHelpers
         editor.conversion.for('downcast').add(preventPartialMentionDowncast);
+
+        // 用于注册后修复器回调。post-fixer 机制保证功能将在正确的模型状态下运行。
+        /**
+         * 功能的执行可能导致不正确的文档树状态。回调用于在更改后修复文档树。在应用最外层更改块的所有更改之后但在更改事件被触发之前，后修复器被触发。如果 post-fixer 回调进行了更改，它应该返回true. 发生这种情况时，将再次触发所有后修复程序以检查是否有其他内容不应在新文档树状态中修复。
+         * 
+         * 作为参数，post-fixer 回调接收与已执行更改块连接的编写器实例。由于这一点，回调完成的所有更改都将添加到与 原始更改相同的批次（和撤消步骤）。这使得后修复程序的更改对用户透明。
+         * 
+         * post-fixer 的一个例子是一个回调，它检查是否所有数据都从编辑器中删除。如果是这样，回调应该添加一个空段落，以便编辑器永远不会为空：
+         */
         doc.registerPostFixer(writer => removePartialMentionPostFixer(writer, doc, model.schema));
         doc.registerPostFixer(writer => extendAttributeOnMentionPostFixer(writer, doc));
         doc.registerPostFixer(writer => selectionMentionAttributePostFixer(writer, doc));
@@ -114,6 +128,11 @@ export function _toMentionAttribute(viewElementOrMention, data) {
  * This converter is registered with 'highest' priority in order to consume mention attribute before it is converted by
  * any other converters. This converter only consumes partial mention - those whose `_text` attribute is not equal to text with mention
  * attribute. This may happen when copying part of mention text.
+ * 
+ * 阻止部分提及被转换的转换器。
+ *
+ * 此转换器以“最高”优先级注册，以便在被转换之前使用提及属性任何其他转换器。
+ * 此转换器仅使用部分提及—其' _text '属性不等于带有提及的文本属性。在复制部分提及文本时可能会发生这种情况。
  */
 function preventPartialMentionDowncast(dispatcher) {
     dispatcher.on('attribute:mention', (evt, data, conversionApi) => {
@@ -149,6 +168,8 @@ function createViewMentionElement(mention, { writer }) {
 /**
  * Model post-fixer that disallows typing with selection when the selection is placed after the text node with the mention attribute or
  * before a text node with mention attribute.
+ * 
+ * 当选择项被放置在带有提及属性的文本节点之后或带有提及属性的文本节点之前时，模型后置修复器禁止键入选择项。
  */
 function selectionMentionAttributePostFixer(writer, doc) {
     const selection = doc.selection;
@@ -174,6 +195,7 @@ function shouldNotTypeWithMentionAt(position) {
 }
 /**
  * Model post-fixer that removes the mention attribute from the modified text node.
+ * 从修改的文本节点中删除提及属性的模型后置修复器。
  */
 function removePartialMentionPostFixer(writer, doc, schema) {
     const changes = doc.differ.getChanges();
@@ -183,17 +205,21 @@ function removePartialMentionPostFixer(writer, doc, schema) {
             continue;
         }
         // Checks the text node on the current position.
+        // 检查当前位置上的文本节点。
         const position = change.position;
         if (change.name == '$text') {
             const nodeAfterInsertedTextNode = position.textNode && position.textNode.nextSibling;
             // Checks the text node where the change occurred.
+            // 检查发生更改的文本节点。
             wasChanged = checkAndFix(position.textNode, writer) || wasChanged;
             // Occurs on paste inside a text node with mention.
+            // 在带有提及的文本节点内粘贴时发生。
             wasChanged = checkAndFix(nodeAfterInsertedTextNode, writer) || wasChanged;
             wasChanged = checkAndFix(position.nodeBefore, writer) || wasChanged;
             wasChanged = checkAndFix(position.nodeAfter, writer) || wasChanged;
         }
         // Checks text nodes in inserted elements (might occur when splitting a paragraph or pasting content inside text with mention).
+        // 检查插入元素中的文本节点(可能在分割段落或将内容粘贴到包含提及的文本中时发生)。
         if (change.name != '$text' && change.type == 'insert') {
             const insertedNode = position.nodeAfter;
             for (const item of writer.createRangeIn(insertedNode).getItems()) {
@@ -235,6 +261,9 @@ function extendAttributeOnMentionPostFixer(writer, doc) {
 /**
  * Checks if a node has a correct mention attribute if present.
  * Returns `true` if the node is text and has a mention attribute whose text does not match the expected mention text.
+ * 
+ * 检查节点是否有正确的提及属性(如果存在)。
+ * 如果节点是文本且提及属性的文本与预期提及文本不匹配，则返回' true '。
  */
 function isBrokenMentionNode(node) {
     if (!node || !(node.is('$text') || node.is('$textProxy')) || !node.hasAttribute('mention')) {

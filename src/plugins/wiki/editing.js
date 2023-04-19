@@ -131,6 +131,7 @@ export default class AbbreviationEditing extends Plugin {
 			// 回调函数提供了对模型属性值和DowncastWriter的访问
 			view: (modelAttributeValue, conversionApi) => {
 				const { writer } = conversionApi;
+				// <wiki href="xxx"></wiki>
 				return writer.createAttributeElement('wiki', {
 					href: modelAttributeValue
 				});
@@ -149,7 +150,7 @@ export default class AbbreviationEditing extends Plugin {
 				// Callback function provides access to the view element
 				// 回调函数提供对视图元素的访问
 				value: viewElement => {
-					const link = viewElement.getAttribute('link');
+					const link = viewElement.getAttribute('href');
 					return link;
 				}
 			}
