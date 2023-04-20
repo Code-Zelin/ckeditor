@@ -35,7 +35,7 @@ export default class Autoformat extends Plugin {
         this._addBlockQuoteAutoformats();
         this._addCodeBlockAutoformats();
         this._addHorizontalLineAutoformats();
-        this._addWikiBlockAutoFormats();
+        // this._addWikiBlockAutoFormats();
     }
     /**
      * Adds autoformatting related to the {@link module:list/list~List}.

@@ -8,6 +8,36 @@ import AbbreviationCommand from './commend';
 import { uid } from 'ckeditor5/src/utils';
 
 /**
+ * A converter that blocks partial mention from being converted.
+ *
+ * This converter is registered with 'highest' priority in order to consume mention attribute before it is converted by
+ * any other converters. This converter only consumes partial mention - those whose `_text` attribute is not equal to text with mention
+ * attribute. This may happen when copying part of mention text.
+ * 
+ * 阻止部分提及被转换的转换器。
+ *
+ * 此转换器以“最高”优先级注册，以便在被转换之前使用提及属性任何其他转换器。
+ * 此转换器仅使用部分提及—其' _text '属性不等于带有提及的文本属性。在复制部分提及文本时可能会发生这种情况。
+ */
+function preventPartialMentionDowncast(dispatcher) {
+	dispatcher.on('attribute:wiki', (evt, data, conversionApi) => {
+		const mention = data.attributeNewValue;
+		console.log("attribute:wiki....", data, mention, data.item.is('$textProxy'));
+		if (!data.item.is('$textProxy') || !mention) {
+			return;
+		}
+		const start = data.range.start;
+		const textNode = start.textNode || start.nodeAfter;
+		console.log("比较 textNode.data, mention._text", textNode.data, mention._text)
+		if (textNode.data != mention._text) {
+			// Consume item to prevent partial mention conversion.
+			console.log('不等于。。。', data.item, evt);
+			conversionApi.consumable.consume(data.item, evt.name);
+		}
+	}, { priority: 'highest' });
+}
+
+/**
  * Checks if a node has a correct wiki attribute if present.
  * Returns `true` if the node is text and has a wiki attribute whose text does not match the expected wiki text.
  * 
@@ -140,7 +170,7 @@ function selectionMentionAttributePostFixer(writer, doc) {
  * @internal
 */
 export function _addMentionAttributes(baseMentionData, data) {
-    return Object.assign({ uid: uid() }, baseMentionData, data || {});
+	return Object.assign({ uid: uid() }, baseMentionData, data || {});
 }
 
 /**
@@ -213,24 +243,24 @@ export default class AbbreviationEditing extends Plugin {
 
 				// // 寻找到wiki标记
 
-				if (timer) {
-					clearTimeout(timer);
-				}
-				timer = setTimeout(() => {
-					console.log("show wiki list");
-					this.editor.fire("showWikiList");
-				}, 300)
+				// if (timer) {
+				// 	clearTimeout(timer);
+				// }
+				// timer = setTimeout(() => {
+				// 	console.log("show wiki list");
+				// 	this.editor.fire("showWikiList");
+				// }, 300)
 
 				// 输入
-				// if (data && data[0] && data[0].text === '[') {			
-				// 	model.change(writer => {
-				// 		console.log("model change..", writer, data[0].selection);
-				// 		// 插入文本
-				// 		model.insertContent(writer.createText(']'));
-				// 		// 调整被选择区域至当前字符处，也就是[后面，]前面
-				// 		writer.setSelection( data[0].selection );
-				// 	})
-				// }
+				if (data && data[0] && data[0].text === '[') {			
+					model.change(writer => {
+						console.log("model change..", writer, data[0].selection);
+						// 插入文本
+						model.insertContent(writer.createText(']'));
+						// 调整被选择区域至当前字符处，也就是[后面，]前面
+						writer.setSelection( data[0].selection );
+					})
+				}
 
 
 
@@ -282,6 +312,7 @@ export default class AbbreviationEditing extends Plugin {
 	}
 	_defineConverters() {
 		const conversion = this.editor.conversion;
+		const model = this.editor.model;
 		const doc = model.document;
 
 		// attributeToElement()将模型缩写属性转换为视图<abbr>元素。
@@ -297,7 +328,11 @@ export default class AbbreviationEditing extends Plugin {
 			// Callback function provides access to the model attribute value and the DowncastWriter
 			// 回调函数提供了对模型属性值和DowncastWriter的访问
 			view: (modelAttributeValue, conversionApi) => {
+				if (!modelAttributeValue) {
+					return;
+				}
 				const { writer } = conversionApi;
+				console.log('modelAttributeValue', modelAttributeValue);
 				// <wiki href="xxx"></wiki>
 				return writer.createAttributeElement('wiki', {
 					'data-href': modelAttributeValue.id
@@ -312,7 +347,7 @@ export default class AbbreviationEditing extends Plugin {
 		conversion.for('upcast').elementToAttribute({
 			view: {
 				name: 'wiki',
-				attributes: ['href']
+				attributes: ['data-href']
 			},
 			model: {
 				key: 'wiki',
@@ -328,6 +363,7 @@ export default class AbbreviationEditing extends Plugin {
 		// conversion文档 （https://ckeditor.com/docs/ckeditor5/latest/api/module_engine_conversion_conversion-Conversion.html）
 		// editor.conversion.for("downcast") 返回一个 DowncastHelpers 实例 （https://ckeditor.com/docs/ckeditor5/latest/api/module_engine_conversion_downcasthelpers-DowncastHelpers.html）
 		// add( conversionHelper ) → DowncastHelpers
+
 		conversion.for('downcast').add(preventPartialMentionDowncast);
 
 		// 用于注册后修复器回调。post-fixer 机制保证功能将在正确的模型状态下运行。

@@ -48,7 +48,8 @@ const turndownService = new TurndownService({
 });
 turndownService.use([
     gfm,
-    todoList
+    todoList,
+    wikiLink
 ]);
 /**
  * Parses HTML to a markdown.
@@ -67,6 +68,16 @@ function todoList(turndownService) {
         },
         replacement(content, node) {
             return (node.checked ? '[x]' : '[ ]') + ' ';
+        }
+    });
+}
+// This is a copy of the original taskListItems rule from turdown-plugin-gfm, with minor changes.
+function wikiLink(turndownService) {
+    turndownService.addRule('wikiLink', {
+        filter: ["wiki"],
+        replacement(content, node) {
+            console.log('wikiLink', content, node)
+            return `[[${content}]]`;
         }
     });
 }

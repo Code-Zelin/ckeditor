@@ -37,7 +37,7 @@
 		<div class="centered">
 			<div class="row row-editor">
 				<div class="editor-container">
-					<div class="editor">
+					<div class="editor" id="editor">
 					</div>
 				</div>
 			</div>
@@ -63,8 +63,7 @@
 
 			// Include an item in the search results if name or username includes the current user input.
 			return (
-				item.name.toLowerCase().includes(searchString) ||
-				item.id.toLowerCase().includes(searchString)
+				item.name.toLowerCase().includes(searchString)
 			);
 		}
 
@@ -77,13 +76,13 @@
 			{ id: '@tdog', userId: '6', name: 'Ted Mosby', link: 'https://www.imdb.com/title/tt0460649/characters/nm1102140' }
 		];
 
-		function getFeedItems(queryText) {
+		function getFeedItems(queryText, list) {
 			// As an example of an asynchronous action, return a promise
 			// that resolves after a 100ms timeout.
 			// This can be a server request or any sort of delayed action.
 			return new Promise(resolve => {
 				setTimeout(() => {
-					const itemsToDisplay = items
+					const itemsToDisplay = list
 						// Filter out the full list of all items to only those matching the query text.
 						.filter(item => isItemMatching(item, queryText))
 						// Return 10 items max - needed for generic queries when the list may contain hundreds of elements.
@@ -91,6 +90,71 @@
 
 					resolve(itemsToDisplay);
 				}, 100);
+			});
+		}
+
+		const getWikiItems = (queryText) => {
+			// As an example of an asynchronous action, return a promise
+			// that resolves after a 100ms timeout.
+			// This can be a server request or any sort of delayed action.
+			return new Promise((resolve) => {
+				
+				setTimeout(() => {
+					const wikiItems = [
+						{
+							id: "swarley",
+							userId: "1",
+							name: "Barney Stinson",
+							link: "https://www.imdb.com/title/tt0460649/characters/nm0000439",
+						},
+						{
+							id: "#lilypad",
+							userId: "2",
+							name: "Lily Aldrin",
+							link: "https://www.imdb.com/title/tt0460649/characters/nm0004989",
+						},
+						{
+							id: "marry",
+							userId: "3",
+							name: "Marry Ann Lewis",
+							link: "https://www.imdb.com/title/tt0460649/characters/nm1130627",
+						},  
+						{
+							id: "marshmallow",
+							userId: "4",
+							name: "Marshall Eriksen",
+							link: "https://www.imdb.com/title/tt0460649/characters/nm0781981",
+						},
+						{
+							id: "rsparkles",
+							userId: "5",
+							name: "Robin Scherbatsky",
+							link: "https://www.imdb.com/title/tt0460649/characters/nm1130627",
+						},
+						{
+							id: "tdog",
+							userId: "6",
+							name: "Ted Mosby",
+							link: "https://www.imdb.com/title/tt0460649/characters/nm1102140",
+						},
+					];
+					console.log("queryText..,", queryText);
+
+					if (queryText.startsWith("\[\[")) {
+						queryText = queryText.slice(2)
+					}
+					console.log("queryText>>>>", queryText);
+
+					const itemsToDisplay = wikiItems
+						// Filter out the full list of all items to only those matching the query text.
+						.filter(item => isItemMatching(item, queryText))
+						// Return 10 items max - needed for generic queries when the list may contain hundreds of elements.
+						.slice(0, 10);
+
+					console.log("items>>>>", itemsToDisplay)
+
+					resolve(itemsToDisplay);
+				}, 1000);
 			});
 		}
 
@@ -127,9 +191,18 @@
 					feeds: [
 						{
 							marker: '@',
-							feed: getFeedItems,
+							feed: (text) => getFeedItems(text, items),
 							itemRenderer: customItemRenderer
 						},
+					]
+				},
+				wiki: {
+					feeds: [
+						{
+							marker: "[[",
+							feed: getWikiItems,
+							itemRenderer: customItemRenderer
+						}
 					]
 				},
 			})
@@ -145,8 +218,10 @@
 	</script>
 
 	<script>
-		document.querySelector("wiki").addEventListener("click", (e) => {
-			console.log(e.target.getAttribute("href"));
+		document.getElementById("editor").addEventListener("click", (e) => {
+
+			console.log(e.target);
+			
 		})
 	</script>
 </body>

@@ -7,10 +7,23 @@ import Command from '@ckeditor/ckeditor5-core/src/command';
 import findAttributeRange from '@ckeditor/ckeditor5-typing/src/utils/findattributerange'; 	
 import getRangeText from './utils.js';
 import { _addMentionAttributes } from "./editing";
-import { CKEditorError, toMap } from 'ckeditor5/src/utils';
-import { toMap } from '@ckeditor/ckeditor5-utils';						
+import { CKEditorError, toMap } from 'ckeditor5/src/utils';					
 
 export default class AbbreviationCommand extends Command {
+	clearRangeQueue = []
+
+	clearWikiMarkerFunction() {
+		const model = this.editor.model;
+		while(this.clearRangeQueue.length > 0) {
+			const firstRange = this.clearRangeQueue.shift();
+			model.change( writer => {
+				const currentAttributes = toMap(selection.getAttributes());
+				model.insertContent(writer.createText(']]', currentAttributes), start.getShiftedBy(endOffset - currentEndOffset));
+				model.insertContent(writer.createText('[[', currentAttributes), start.getShiftedBy(startOffset - currentStartOffset));
+			} );
+		}
+	}
+
     refresh() {
 		const model = this.editor.model;
 		const selection = model.document.selection;
@@ -20,41 +33,27 @@ export default class AbbreviationCommand extends Command {
 
 		// When the selection is collapsed, the command has a value if the caret is in an abbreviation.
 		if ( firstRange.isCollapsed ) {
+			console.log("selection>>>", selection, selection.hasAttribute( 'wiki' ));
 			if ( selection.hasAttribute( 'wiki' ) ) {
-				const attributeValue = selection.getAttribute( 'wiki' );
+				// const start = firstRange.start;
+				// const end = firstRange.end;
 
-				// Find the entire range containing the abbreviation under the caret position.
-				const abbreviationRange = findAttributeRange( selection.getFirstPosition(), 'wiki', attributeValue, model );
+				// if (start.textNode === end.textNode) {
+				// 	const currentStartOffset = start.offset;
+				// 	const currentEndOffset = end.offset;
+				// 	const { startOffset, endOffset } = end.textNode;
+				// 	console.log("offset>>>>", startOffset, endOffset, currentStartOffset, currentEndOffset);
+				// 	// 给wiki包裹上[[]]
+				// 	model.change( writer => {
+				// 		const currentAttributes = toMap(selection.getAttributes());
+				// 		model.insertContent(writer.createText(']]', currentAttributes), end.getShiftedBy(endOffset - currentEndOffset));
+				// 		model.insertContent(writer.createText('[[', currentAttributes), start.getShiftedBy(startOffset - currentStartOffset));
+				// 	} );
 
-				this.value = {
-					title: getRangeText( abbreviationRange ),
-					href: attributeValue,
-					range: abbreviationRange
-				};
+				// 	this.clearRangeQueue.push([range, selection])
+				// }
 			} else {
-				this.value = null;
-			}
-		}
-		// When the selection is not collapsed, the command has a value if the selection contains a subset of a single abbreviation
-		// or an entire abbreviation.
-		else {
-			if ( selection.hasAttribute( 'wiki' ) ) {
-				const attributeValue = selection.getAttribute( 'wiki' );
-
-				// Find the entire range containing the abbreviation under the caret position.
-				const abbreviationRange = findAttributeRange( selection.getFirstPosition(), 'wiki', attributeValue, model );
-
-				if ( abbreviationRange.containsRange( firstRange, true ) ) {
-					this.value = {
-						title: getRangeText( firstRange ),
-						href: attributeValue,
-						range: firstRange
-					};
-				} else {
-					this.value = null;
-				}
-			} else {
-				this.value = null;
+				// this.clearWikiMarkerFunction();
 			}
 		}
 
@@ -62,15 +61,16 @@ export default class AbbreviationCommand extends Command {
 		this.isEnabled = model.schema.checkAttributeInSelection( selection, 'wiki' );
 	}
 
-	execute( { wikiData, id: wikiId, range, text, marker } ) {
+	execute( { wikiData, id: wikiId, range, name, marker } ) {
 		const model = this.editor.model;
 		const document = model.document;
 		const selection = document.selection;
 
-		const _wikiData = typeof wikiData == 'string' ? { id: wikiData } : wikiData;
-		const wikiRange = range || sessionStorage.getFirstRange();
-		const wikiText = text || wikiId;
-		const wiki = _addMentionAttributes({ _text: wikiText, id: wikiId }, _wikiData);
+		const wikiRange = range || selection.getFirstRange();
+		const wikiText = name || wikiId;
+		const wiki = _addMentionAttributes({ _text: wikiText, id: wikiId }, wikiData);
+
+		console.log("command execute>>", wikiData, marker, wiki, wikiRange, wikiText)
 
 		if (marker.length != 2 && marker === "[[") {
             /**
@@ -87,44 +87,13 @@ export default class AbbreviationCommand extends Command {
             throw new CKEditorError('wikicommand-incorrect-marker', this);
         }
 
-		if (wikiId.slice(0, 2) != marker) {
-            /**
-             * The feed item ID must start with the marker character.
-             *
-             * Correct mention feed setting:
-             *
-             * ```ts
-             * mentions: [
-             * 	{
-             * 		marker: '@',
-             * 		feed: [ '@Ann', '@Barney', ... ]
-             * 	}
-             * ]
-             * ```
-             *
-             * Incorrect mention feed setting:
-             *
-             * ```ts
-             * mentions: [
-             * 	{
-             * 		marker: '@',
-             * 		feed: [ 'Ann', 'Barney', ... ]
-             * 	}
-             * ]
-             * ```
-             *
-             * @error mentioncommand-incorrect-id
-			**/
-            throw new CKEditorError('wikicommand-incorrect-id', this);
-        }
-
 		model.change( writer => {
 			const currentAttributes = toMap(selection.getAttributes());
             const attributesWithMention = new Map(currentAttributes.entries());
             attributesWithMention.set('wiki', wiki);
             // Replace a range with the text with a wiki.
+			// 在当前标记的范围内，用wiki attribute 替换掉 文案，文字是wikiText，属性为attributesWithMention
             model.insertContent(writer.createText(wikiText, attributesWithMention), wikiRange);
-            model.insertContent(writer.createText(' ', currentAttributes), wikiRange.start.getShiftedBy(wikiText.length));
 		} );
 	}
 }

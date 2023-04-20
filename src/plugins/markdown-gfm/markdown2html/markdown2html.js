@@ -69,10 +69,6 @@ function markedInternalLink() {
                 const match = rule.exec(src)
 
                 // match:: ['[[[[xxxx-xxxx]]', '[[xxxx-xxxx', index: 0, input: '[[[[xxxx-xxxx]]', groups: undefined]
-
-                console.log('internalLink', src, tokens, match);
-
-                console.log(this.lexer);
                 if (match) {
                     const token = {
                         type: 'internalLink',
@@ -84,8 +80,7 @@ function markedInternalLink() {
                 }
             },
             renderer(token) {
-                console.log("render....", token)
-                return `<wiki onClick="window.open(${token.text})" href="${token.text}" data-origin="${token.raw}">${token.text}</wiki>`;
+                return `[[<wiki data-href="${token.text}">${token.text}</wiki>]]`;
             },
         },]
     };
@@ -94,26 +89,8 @@ function markedInternalLink() {
 // marked.use(customHeadingId());
 // console.log("marked heading", marked.parse("# heading {#custom-id}"))
 
-// marked.use(markedInternalLink());
-// console.log("marked internalLink", marked.parse("[[[[xxxx-xxxx]]"))
-
-const renderer = {
-    heading(text, level) {
-        const escapedText = text.toLowerCase().replace(/[^\w]+/g, '-');
-
-        return `
-              <h${level}>
-                <a name="${escapedText}" class="anchor" href="#${escapedText}">
-                  <span class="header-link"></span>
-                </a>
-                ${text}
-              </h${level}>`;
-    }
-};
-
-marked.use({ renderer });
-
-console.log('# heading+', marked.parse('# heading+'));
+marked.use(markedInternalLink());
+console.log("marked internalLink", marked.parse("[[[[xxxx-xxxx]]"))
 
 /**
  * Parses markdown string to an HTML.
@@ -122,11 +99,11 @@ console.log('# heading+', marked.parse('# heading+'));
 export default function markdown2html(markdown) {
 
     const options = {
-        // gfm: true,
-        // breaks: true,
-        // tables: true,
-        // xhtml: true,
-        // headerIds: false,
+        gfm: true,
+        breaks: true,
+        tables: true,
+        xhtml: true,
+        headerIds: false,
     };
 
     console.log('markdown2html::', markdown);
