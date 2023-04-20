@@ -1,175 +1,404 @@
+import { Plugin } from 'ckeditor5/src/core';
+import { ButtonView, ContextualBalloon, clickOutsideHandler } from 'ckeditor5/src/ui';
+import { CKEditorError, Collection, Rect, env, keyCodes, logWarning } from 'ckeditor5/src/utils';
+import { TextWatcher } from 'ckeditor5/src/typing';
+import WikisView from "./ui/wikisview";
+import MentionListItemView from "./ui/mentionlistitemview";
+
+const VERTICAL_SPACING = 3;
+// The key codes that mention UI handles when it is open (without commit keys).
+const defaultHandledKeyCodes = [
+    // 上箭头
+    keyCodes.arrowup,
+    // 下箭头
+    keyCodes.arrowdown,
+    // 退出
+    keyCodes.esc
+];
+// Dropdown commit key codes.
+const defaultCommitKeyCodes = [
+    keyCodes.enter,
+    keyCodes.tab
+];
+
 /**
- * @license Copyright (c) 2003-2022, CKSource Holding sp. z o.o. All rights reserved.
- * For licensing, see LICENSE.md.
+ * Checks if string is a valid mention marker.
  */
-
-import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
-import ButtonView from '@ckeditor/ckeditor5-ui/src/button/buttonview';
-import { ContextualBalloon, clickOutsideHandler } from '@ckeditor/ckeditor5-ui';
-import WikiListView from './view';
-import getRangeText from './utils.js';
-
-function renderRandomStr() {
-	const list = ["a","b","c", "d", 1,2,3,4,5,6,7,8,9];
-
-	function randomItem(_list) {
-		const length = _list.length;
-		const index = Math.floor(Math.random() * length);
-		return _list[index];
-	}
-
-	return Array.from({ length: 5 }).map(item => Array.from({ length: 5 }).map(() => randomItem(list)).join(""));
+function isValidMentionMarker(marker) {
+    return marker && marker.length == 2 && marker == '[[';
 }
 
-export default class AbbreviationUI extends Plugin {
-	static get requires() {
-		return [ ContextualBalloon ];
-	}
+export default class WikiUI extends Plugin {
+    /**
+     * @inheritDoc
+     */
+    static get pluginName() {
+        return 'WikiUI';
+    }
+    /**
+     * @inheritDoc
+     */
+    static get requires() {
+        return [ContextualBalloon];
+    }
+    /**
+     * @inheritDoc
+     */
+    constructor(editor) {
+        super(editor);
+        this._items = new Collection();
+        this._mentionsView = this._createMentionView();
+        this._mentionsConfigurations = new Map();
+        this._requestFeedDebounced = debounce(this._requestFeed, 100);
+        editor.config.define('wiki', { feeds: [] });
+        this._balloon = {
+            visibleView: false,
+        };
+    }
 
-	init() {
-		const editor = this.editor;
+    /**
+    * Returns true when {@link #_mentionsView} is in the {@link module:ui/panel/balloon/contextualballoon~ContextualBalloon} and it is
+    * currently visible.
+    */
+    get _isUIVisible() {
+        return this._balloon.visibleView === this._mentionsView;
+    }
 
-        // Create the balloon and the form view.
-		this._balloon = this.editor.plugins.get( ContextualBalloon );
-		console.log("bbbbb", this._balloon, ContextualBalloon)
+    /**
+     * @inheritDoc
+     */
+    init() {
+        const editor = this.editor;
+        // 从<Editor config={{ mention: { commitKeys: [xxx] } }} />上的config中取出mention.commitKeys
+        const commitKeys = editor.config.get('mention.commitKeys') || defaultCommitKeyCodes;
+        const handledKeyCodes = defaultHandledKeyCodes.concat(commitKeys);
+        this._balloon = editor.plugins.get(ContextualBalloon);
+        // Key listener that handles navigation in mention view.
+        // 处理提及视图中导航的键侦听器。
+        editor.editing.view.document.on('keydown', (evt, data) => {
+            if (isHandledKey(data.keyCode) && this._isUIVisible) {
+                data.preventDefault();
+                // Required for Enter key overriding.
+                // 输入键覆盖所需。
+                evt.stop();
+                // 上下选择列表中的item
+                if (data.keyCode == keyCodes.arrowdown) {
+                    this._mentionsView.selectNext();
+                }
+                if (data.keyCode == keyCodes.arrowup) {
+                    this._mentionsView.selectPrevious();
+                }
+                if (commitKeys.includes(data.keyCode)) {
+                    this._mentionsView.executeSelected();
+                }
+                // 点击ESC，隐藏列表
+                if (data.keyCode == keyCodes.esc) {
+                    this._hideUIAndRemoveMarker();
+                }
+            }
+        }, { priority: 'highest' }); // Required to override the Enter key.
+        // Close the dropdown upon clicking outside of the plugin UI.
+        clickOutsideHandler({
+            emitter: this._mentionsView,
+            activator: () => this._isUIVisible,
+            contextElements: () => [this._balloon.view.element],
+            callback: () => this._hideUIAndRemoveMarker()
+        });
+        const feeds = editor.config.get('mention.feeds');
+        for (const mentionDescription of feeds) {
+            const feed = mentionDescription.feed;
+            const marker = mentionDescription.marker;
+            if (!isValidMentionMarker(marker)) {
+                /**
+                 * The marker must be a single character.
+                 *
+                 * Correct markers: `'[['`
+                 *
+                 * @error mentionconfig-incorrect-marker
+                 * @param marker Configured marker
+                 */
+                throw new CKEditorError('mentionconfig-incorrect-marker', null, { marker });
+            }
+            const feedCallback = typeof feed == 'function' ? feed.bind(this.editor) : createFeedCallback(feed);
+            const itemRenderer = mentionDescription.itemRenderer;
+            const definition = { marker, feedCallback, itemRenderer };
+            this._mentionsConfigurations.set(marker, definition);
+        }
+        this._setupTextWatcher(feeds);
+        this.listenTo(editor, 'change:isReadOnly', () => {
+            this._hideUIAndRemoveMarker();
+        });
+        this.on('requestFeed:response', (evt, data) => this._handleFeedResponse(data));
+        this.on('requestFeed:error', () => this._hideUIAndRemoveMarker());
+        /**
+         * Checks if a given key code is handled by the mention UI.
+         */
+        function isHandledKey(keyCode) {
+            return handledKeyCodes.includes(keyCode);
+        }
+    }
 
+    /**
+     * @inheritDoc
+     */
+    destroy() {
+        super.destroy();
+        // Destroy created UI components as they are not automatically destroyed (see ckeditor5#1341).
+        this._mentionsView.destroy();
+    }
 
-		this.wikiListView = this._createFormView(["aa1", "ab2", "ac3", "ad4"]);
+    /**
+     * Registers a text watcher for the marker.
+     */
+     _setupTextWatcher(feeds) {
+        const editor = this.editor;
+        const feedsWithPattern = feeds.map(feed => ({
+            ...feed,
+            pattern: createRegExp(feed.marker, feed.minimumCharacters || 0)
+        }));
+        const watcher = new TextWatcher(editor.model, createTestCallback(feedsWithPattern));
+        watcher.on('matched', (evt, data) => {
+            const markerDefinition = getLastValidMarkerInText(feedsWithPattern, data.text);
+            const selection = editor.model.document.selection;
+            const focus = selection.focus;
+            const markerPosition = editor.model.createPositionAt(focus.parent, markerDefinition.position);
+            if (isPositionInExistingMention(focus) || isMarkerInExistingMention(markerPosition)) {
+                this._hideUIAndRemoveMarker();
+                return;
+            }
+            const feedText = requestFeedText(markerDefinition, data.text);
+            const matchedTextLength = markerDefinition.marker.length + feedText.length;
+            // Create a marker range.
+            const start = focus.getShiftedBy(-matchedTextLength);
+            const end = focus.getShiftedBy(-feedText.length);
+            const markerRange = editor.model.createRange(start, end);
+            // @if CK_DEBUG_MENTION // console.group( '%c[TextWatcher]%c matched', 'color: red', 'color: black', `"${ feedText }"` );
+            // @if CK_DEBUG_MENTION // console.log( 'data#text', `"${ data.text }"` );
+            // @if CK_DEBUG_MENTION // console.log( 'data#range', data.range.start.path, data.range.end.path );
+            // @if CK_DEBUG_MENTION // console.log( 'marker definition', markerDefinition );
+            // @if CK_DEBUG_MENTION // console.log( 'marker range', markerRange.start.path, markerRange.end.path );
+            if (checkIfStillInCompletionMode(editor)) {
+                const mentionMarker = editor.model.markers.get('mention');
+                // Update the marker - user might've moved the selection to other mention trigger.
+                editor.model.change(writer => {
+                    // @if CK_DEBUG_MENTION // console.log( '%c[Editing]%c Updating the marker.', 'color: purple', 'color: black' );
+                    writer.updateMarker(mentionMarker, { range: markerRange });
+                });
+            }
+            else {
+                editor.model.change(writer => {
+                    // @if CK_DEBUG_MENTION // console.log( '%c[Editing]%c Adding the marker.', 'color: purple', 'color: black' );
+                    writer.addMarker('mention', { range: markerRange, usingOperation: false, affectsData: false });
+                });
+            }
+            this._requestFeedDebounced(markerDefinition.marker, feedText);
+            // @if CK_DEBUG_MENTION // console.groupEnd( '[TextWatcher] matched' );
+        });
+        watcher.on('unmatched', () => {
+            this._hideUIAndRemoveMarker();
+        });
+        const mentionCommand = editor.commands.get('mention');
+        watcher.bind('isEnabled').to(mentionCommand);
+        return watcher;
+    }
+    /**
+     * Handles the feed response event data.
+     */
+    _handleFeedResponse(data) {
+        const { feed, marker } = data;
+        // eslint-disable-next-line max-len
+        // @if CK_DEBUG_MENTION // console.log( `%c[Feed]%c Response for "${ data.feedText }" (${ feed.length })`, 'color: blue', 'color: black', feed );
+        // If the marker is not in the document happens when the selection had changed and the 'mention' marker was removed.
+        if (!checkIfStillInCompletionMode(this.editor)) {
+            return;
+        }
+        // Reset the view.
+        this._items.clear();
+        for (const feedItem of feed) {
+            const item = typeof feedItem != 'object' ? { id: feedItem, text: feedItem } : feedItem;
+            this._items.add({ item, marker });
+        }
+        const mentionMarker = this.editor.model.markers.get('mention');
+        if (this._items.length) {
+            this._showOrUpdateUI(mentionMarker);
+        }
+        else {
+            // Do not show empty mention UI.
+            this._hideUIAndRemoveMarker();
+        }
+    }
+    /**
+     * Shows the mentions balloon. If the panel is already visible, it will reposition it.
+     */
+    _showOrUpdateUI(markerMarker) {
+        if (this._isUIVisible) {
+            // @if CK_DEBUG_MENTION // console.log( '%c[UI]%c Updating position.', 'color: green', 'color: black' );
+            // Update balloon position as the mention list view may change its size.
+            this._balloon.updatePosition(this._getBalloonPanelPositionData(markerMarker, this._mentionsView.position));
+        }
+        else {
+            // @if CK_DEBUG_MENTION // console.log( '%c[UI]%c Showing the UI.', 'color: green', 'color: black' );
+            this._balloon.add({
+                view: this._mentionsView,
+                position: this._getBalloonPanelPositionData(markerMarker, this._mentionsView.position),
+                singleViewMode: true
+            });
+        }
+        this._mentionsView.position = this._balloon.view.position;
+        this._mentionsView.selectFirst();
+    }
+    /**
+     * Hides the mentions balloon and removes the 'mention' marker from the markers collection.
+     */
+    _hideUIAndRemoveMarker() {
+        // Remove the mention view from balloon before removing marker - it is used by balloon position target().
+        if (this._balloon.hasView(this._mentionsView)) {
+            // @if CK_DEBUG_MENTION // console.log( '%c[UI]%c Hiding the UI.', 'color: green', 'color: black' );
+            this._balloon.remove(this._mentionsView);
+        }
+        if (checkIfStillInCompletionMode(this.editor)) {
+            // @if CK_DEBUG_MENTION // console.log( '%c[Editing]%c Removing marker.', 'color: purple', 'color: black' );
+            this.editor.model.change(writer => writer.removeMarker('mention'));
+        }
+        // Make the last matched position on panel view undefined so the #_getBalloonPanelPositionData() method will return all positions
+        // on the next call.
+        this._mentionsView.position = undefined;
+    }
 
-		editor.ui.componentFactory.add( 'wiki', () => {
-			const button = new ButtonView();
+    /**
+     * Returns item renderer for the marker.
+     */
+    _getItemRenderer(marker) {
+        const { itemRenderer } = this._mentionsConfigurations.get(marker);
+        return itemRenderer;
+    }
 
-			button.label = 'InternalLink';
-			button.tooltip = true;
-			button.withText = true;
+    /**
+     * Renders a single item in the autocomplete list.
+     */
+    _renderItem(item, marker) {
+        const editor = this.editor;
+        let view;
+        let label = item.id;
+        const renderer = this._getItemRenderer(marker);
+        if (renderer) {
+            const renderResult = renderer(item);
+            if (typeof renderResult != 'string') {
+                view = new DomWrapperView(editor.locale, renderResult);
+            }
+            else {
+                label = renderResult;
+            }
+        }
+        if (!view) {
+            const buttonView = new ButtonView(editor.locale);
+            buttonView.label = label;
+            buttonView.withText = true;
+            view = buttonView;
+        }
+        return view;
+    }
 
-			// Show the UI on button click.
-			this.listenTo( button, 'execute', () => {
-				this._showUI();
-			} );
+    /**
+     * Creates the {@link #_wikisView}.
+     */
+    _createMentionView() {
+        const locale = this.editor.locale;
+        const wikisView = new WikisView(locale);
+        wikisView.items.bindTo(this._items).using(data => {
+            const { item, marker } = data;
+            // Set to 10 by default for backwards compatibility. See: #10479
+            // 为了向后兼容，默认设置为10
+            const dropdownLimit = this.editor.config.get('wiki.dropdownLimit') || 10;
+            if (wikisView.items.length >= dropdownLimit) {
+                return null;
+            }
+            // 实例化列表View
+            const listItemView = new MentionListItemView(locale);
+            // 根据内容渲染列表中每个button
+            const view = this._renderItem(item, marker);
+            // 将来自集合内视图的选定事件委托给任何发射器。
+            // 通过 viewX.fire( 'execute', customData ); 触发,
+            // listItemView.on('execute', () => {})接收
+            view.delegate('execute').to(listItemView);
+            listItemView.children.add(view);
+            listItemView.item = item;
+            listItemView.marker = marker;
+            listItemView.on('execute', () => {
+                // 触发wikisView.on('execute', function);
+                wikisView.fire('execute', {
+                    item,
+                    marker
+                });
+            });
+            return listItemView;
+        });
+        wikisView.on('execute', (evt, data) => {
+            const editor = this.editor;
+            const model = editor.model;
+            const item = data.item;
+            const marker = data.marker;
+            const wikiMarker = editor.model.markers.get('wiki');
+            // Create a range on matched text.
+            const end = model.createPositionAt(model.document.selection.focus);
+            const start = model.createPositionAt(wikiMarker.getStart());
+            const range = model.createRange(start, end);
+            this._hideUIAndRemoveMarker();
+            // 使用给定的参数执行指定的命令。
+            // 是 editor.commands.get( commandName ).execute(commandParams)的缩写
+            // 触发editor.commands.add("addWiki", Class)
+            editor.execute('addWiki', {
+                wikiData: item,
+                text: item.text,
+                marker,
+                range
+            });
+            editor.editing.view.focus();
+        });
+        return wikisView;
+    }
 
-			return button;
-		} );
-
-		// editor.commands.add(
-		// 	'showList',
-		// 	new WikiListCommand(editor)
-		// );
-
-		editor.on('showWikiList', () => {
-			console.log('on showWikiList');
-			this._showUI();
-		});
-	}
-
-	_createFormView(data) {
-		const editor = this.editor;
-		const wikiListView = new WikiListView( editor.locale, data );
-
-		// Execute the command after clicking the "Save" button.
-		this.listenTo( wikiListView, 'select', (_, wikiContent) => {
-			console.log('wikilistView...select....', _, wikiContent);
-			const value = {
-				link: wikiContent,
-				title: wikiContent
-			};
-
-			editor.execute( 'addWiki', value );
-
-            // Hide the form view after submit.
-			this._hideUI();
-		} );
-
-		console.log('_balloon_', this._balloon)
-
-		// Hide the form view when clicking outside the balloon.
-		clickOutsideHandler( {
-			emitter: wikiListView,
-			activator: () => this._balloon.visibleView === wikiListView,
-			contextElements: [ this._balloon.view.element ],
-			callback: () => this._hideUI()
-		} );
-
-		return wikiListView;
-	}
-
-	_showUI() {
-		const selection = this.editor.model.document.selection;
-
-		// Check the value of the command.
-		const commandValue = this.editor.commands.get( 'addWiki' );
-
-		console.log("command...value..", commandValue.link, commandValue.title)
-
-		console.log(this._balloon)
-
-		console.log(this.wikiListView)
-
-		if (this._balloon.hasView(this.wikiListView)) {
-			this._balloon.remove(this.wikiListView);
-		}
-
-		// 模拟获取接口
-		setTimeout(() => {
-			this.wikiListView = this._createFormView(renderRandomStr())
-			this._balloon.add( {
-				view: this.wikiListView,
-				position: this._getBalloonPositionData()
-			} );
-		
-		}, 1000);
-
-		// setTimeout(() => {
-		// 	const data = renderRandomStr();
-		// 	console.log('settimeout', data)
-		// 	this.wikiListView.renderData(data)
-		// }, 1000)
-		// Disable the input when the selection is not collapsed.
-		// this.wikiListView.titleInputView.isEnabled = selection.getFirstRange().isCollapsed;
-
-		// Fill the form using the state (value) of the command.
-		// if ( commandValue ) {
-		// 	this.wikiListView.linkInputView.fieldView.value = commandValue.link;
-		// 	this.wikiListView.titleInputView.fieldView.value = commandValue.title;
-		// } else {
-		// 	// If the command has no value, put the currently selected text (not collapsed)
-		// 	// in the first field and empty the second in that case.
-		// 	const selectedText = getRangeText( selection.getFirstRange() );
-
-		// 	this.wikiListView.linkInputView.fieldView.value = '';
-		// 	this.wikiListView.titleInputView.fieldView.value = selectedText;
-		// }
-
-		// this.wikiListView.focus();
-	}
-
-	_hideUI() {
-		// Clear the input field values and reset the form.
-
-		this._balloon.remove( this.wikiListView );
-
-		// Focus the editing view after inserting the abbreviation so the user can start typing the content
-		// right away and keep the editor focused.
-		this.editor.editing.view.focus();
-	}
-
-	_getBalloonPositionData() {
-		const view = this.editor.editing.view;
-		const viewDocument = view.document;
-		let target = null;
-
-		console.log("viewDocument.selection..", viewDocument.selection);
-		// view.document.selection.getFirstRange
-		// Returns copy of the first range in the selection. First range is the one which start position is before start position of all other ranges (not to confuse with the first range added to the selection). Returns null if no ranges are added to selection.
-		// 返回选定的第一个范围的副本。第一个范围是开始位置在所有其他范围开始位置之前的范围(不要与添加到选择中的第一个范围混淆)。如果没有向选择中添加范围，则返回null。
-		const firstRange = viewDocument.selection.getFirstRange();
-		console.log("first range...", firstRange)
-
-		// Set a target position by converting view selection range to DOM
-		target = () => view.domConverter.viewRangeToDom( firstRange );
-
-		return {
-			target
-		};
-	}
+    /**
+     * Requests a feed from a configured callbacks.
+     *
+     * @fires response
+     * @fires discarded
+     * @fires error
+     */
+    _requestFeed(marker, feedText) {
+        // @if CK_DEBUG_MENTION // console.log( '%c[Feed]%c Requesting for', 'color: blue', 'color: black', `"${ feedText }"` );
+        // Store the last requested feed - it is used to discard any out-of order requests.
+        this._lastRequested = feedText;
+        const { feedCallback } = this._mentionsConfigurations.get(marker);
+        const feedResponse = feedCallback(feedText);
+        const isAsynchronous = feedResponse instanceof Promise;
+        // For synchronous feeds (e.g. callbacks, arrays) fire the response event immediately.
+        if (!isAsynchronous) {
+            this.fire('requestFeed:response', { feed: feedResponse, marker, feedText });
+            return;
+        }
+        // Handle the asynchronous responses.
+        feedResponse
+            .then(response => {
+                // Check the feed text of this response with the last requested one so either:
+                if (this._lastRequested == feedText) {
+                    // It is the same and fire the response event.
+                    this.fire('requestFeed:response', { feed: response, marker, feedText });
+                }
+                else {
+                    // It is different - most probably out-of-order one, so fire the discarded event.
+                    this.fire('requestFeed:discarded', { feed: response, marker, feedText });
+                }
+            })
+            .catch(error => {
+                this.fire('requestFeed:error', { error });
+                /**
+                 * The callback used for obtaining mention autocomplete feed thrown and error and the mention UI was hidden or
+                 * not displayed at all.
+                 *
+                 * @error mention-feed-callback-error
+                 */
+                logWarning('mention-feed-callback-error', { marker });
+            });
+    }
 }

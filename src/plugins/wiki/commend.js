@@ -6,6 +6,8 @@
 import Command from '@ckeditor/ckeditor5-core/src/command';
 import findAttributeRange from '@ckeditor/ckeditor5-typing/src/utils/findattributerange'; 	
 import getRangeText from './utils.js';
+import { _addMentionAttributes } from "./editing";
+import { CKEditorError, toMap } from 'ckeditor5/src/utils';
 import { toMap } from '@ckeditor/ckeditor5-utils';						
 
 export default class AbbreviationCommand extends Command {
@@ -26,7 +28,7 @@ export default class AbbreviationCommand extends Command {
 
 				this.value = {
 					title: getRangeText( abbreviationRange ),
-					link: attributeValue,
+					href: attributeValue,
 					range: abbreviationRange
 				};
 			} else {
@@ -45,7 +47,7 @@ export default class AbbreviationCommand extends Command {
 				if ( abbreviationRange.containsRange( firstRange, true ) ) {
 					this.value = {
 						title: getRangeText( firstRange ),
-						link: attributeValue,
+						href: attributeValue,
 						range: firstRange
 					};
 				} else {
@@ -60,54 +62,69 @@ export default class AbbreviationCommand extends Command {
 		this.isEnabled = model.schema.checkAttributeInSelection( selection, 'wiki' );
 	}
 
-	execute( { link, title } ) {
+	execute( { wikiData, id: wikiId, range, text, marker } ) {
 		const model = this.editor.model;
-		const selection = model.document.selection;
+		const document = model.document;
+		const selection = document.selection;
+
+		const _wikiData = typeof wikiData == 'string' ? { id: wikiData } : wikiData;
+		const wikiRange = range || sessionStorage.getFirstRange();
+		const wikiText = text || wikiId;
+		const wiki = _addMentionAttributes({ _text: wikiText, id: wikiId }, _wikiData);
+
+		if (marker.length != 2 && marker === "[[") {
+            /**
+             * The marker must be a single character.
+             *
+             * Correct markers: `'[['`
+             *
+             * Incorrect markers: `'['`, `'@['`.
+             *
+             * See {@link module:wiki/wiki~WikiConfig}.
+             *
+             * @error mentioncommand-incorrect-marker
+             */
+            throw new CKEditorError('wikicommand-incorrect-marker', this);
+        }
+
+		if (wikiId.slice(0, 2) != marker) {
+            /**
+             * The feed item ID must start with the marker character.
+             *
+             * Correct mention feed setting:
+             *
+             * ```ts
+             * mentions: [
+             * 	{
+             * 		marker: '@',
+             * 		feed: [ '@Ann', '@Barney', ... ]
+             * 	}
+             * ]
+             * ```
+             *
+             * Incorrect mention feed setting:
+             *
+             * ```ts
+             * mentions: [
+             * 	{
+             * 		marker: '@',
+             * 		feed: [ 'Ann', 'Barney', ... ]
+             * 	}
+             * ]
+             * ```
+             *
+             * @error mentioncommand-incorrect-id
+			**/
+            throw new CKEditorError('wikicommand-incorrect-id', this);
+        }
 
 		model.change( writer => {
-			// If selection is collapsed then update the selected abbreviation or insert a new one at the place of caret.
-			if ( selection.isCollapsed ) {
-				// When a collapsed selection is inside text with the "abbreviation" attribute, update its text and title.
-				if ( this.value ) {
-					const { end: positionAfter } = model.insertContent(
-						writer.createText( title, { wiki: link } ),
-						this.value.range
-					);
-					// Put the selection at the end of the inserted abbreviation.
-					writer.setSelection( positionAfter );
-				}
-				// If the collapsed selection is not in an existing abbreviation, insert a text node with the "abbreviation" attribute
-				// in place of the caret. Because the selection is collapsed, the attribute value will be used as a data for text.
-				// If the abbreviation is empty, do not do anything.
-				else if ( title !== '' ) {
-					const firstPosition = selection.getFirstPosition();
-
-					// Collect all attributes of the user selection (could be "bold", "italic", etc.)
-					const attributes = toMap( selection.getAttributes() );
-
-					// Put the new attribute to the map of attributes.
-					attributes.set( 'wiki', link );
-
-					// Inject the new text node with the abbreviation text with all selection attributes.
-					const { end: positionAfter } = model.insertContent( writer.createText( title, attributes ), firstPosition );
-
-					// Put the selection at the end of the inserted abbreviation. Using an end of a range returned from
-					// insertContent() just in case nodes with the same attributes were merged.
-					writer.setSelection( positionAfter );
-				}
-
-				// Remove the "abbreviation" attribute attribute from the selection. It stops adding a new content into the abbreviation
-				// if the user starts to type.
-				writer.removeSelectionAttribute( 'wiki' );
-			} else {
-				// If the selection has non-collapsed ranges, change the attribute on nodes inside those ranges
-				// omitting nodes where the "abbreviation" attribute is disallowed.
-				const ranges = model.schema.getValidRanges( selection.getRanges(), 'wiki' );
-
-				for ( const range of ranges ) {
-					writer.setAttribute( 'wiki', link, range );
-				}
-			}
+			const currentAttributes = toMap(selection.getAttributes());
+            const attributesWithMention = new Map(currentAttributes.entries());
+            attributesWithMention.set('wiki', wiki);
+            // Replace a range with the text with a wiki.
+            model.insertContent(writer.createText(wikiText, attributesWithMention), wikiRange);
+            model.insertContent(writer.createText(' ', currentAttributes), wikiRange.start.getShiftedBy(wikiText.length));
 		} );
 	}
 }

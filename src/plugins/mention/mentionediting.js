@@ -236,8 +236,8 @@ function removePartialMentionPostFixer(writer, doc, schema) {
     return wasChanged;
 }
 /**
- * This post-fixer will extend the attribute applied on the part of the mention so the whole text node of the mention will have
- * the added attribute.
+ * This post-fixer will extend the attribute applied on the part of the mention so the whole text node of the mention will have the added attribute.
+ * 这个后置修复器将扩展应用于提及部分的属性，因此提及的整个文本节点将具有添加的属性。
  */
 function extendAttributeOnMentionPostFixer(writer, doc) {
     const changes = doc.differ.getChanges();
@@ -276,6 +276,8 @@ function isBrokenMentionNode(node) {
 }
 /**
  * Fixes a mention on a text node if it needs a fix.
+ * 
+ * 修复需要修复的文本节点上的提及。
  */
 function checkAndFix(textNode, writer) {
     if (isBrokenMentionNode(textNode)) {
