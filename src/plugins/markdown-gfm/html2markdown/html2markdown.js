@@ -77,7 +77,7 @@ function wikiLink(turndownService) {
         filter: ["wiki"],
         replacement(content, node) {
             console.log('wikiLink', content, node)
-            return `[[${content}]]`;
+            return `${content}`;
         }
     });
 }

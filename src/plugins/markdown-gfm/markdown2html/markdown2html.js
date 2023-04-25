@@ -61,17 +61,49 @@ function markedInternalLink() {
             name: 'internalLink',
             level: 'inline',
             start(src) {
-                console.log("start....", src);
+                console.log("internalLink start....", src);
                 return src.indexOf('[[')
             },
             tokenizer(src, tokens) {
-                const rule = /^\[\[([^\]]*)\]\]/
+                const rule = /^(\\\[|\[){2}([^\]\\]+)(\\\]|\]){2}/
                 const match = rule.exec(src)
 
+                console.log("match", match)
                 // match:: ['[[[[xxxx-xxxx]]', '[[xxxx-xxxx', index: 0, input: '[[[[xxxx-xxxx]]', groups: undefined]
                 if (match) {
                     const token = {
                         type: 'internalLink',
+                        raw: match[0],
+                        text: match[2],
+                        tokens: [],
+                    }
+                    return token
+                }
+            },
+            renderer(token) {
+                return `[[<a data-href="${token.text}" data-type="wiki" data-origin="${token.raw}">${token.text}</a>]]`;
+            },
+        },]
+    };
+}
+
+function markedMention() {
+    return {
+        extensions: [{
+            name: 'mention',
+            level: 'inline',
+            start(src) {
+                console.log("markedMention start....", src);
+                return src.indexOf('#')
+            },
+            tokenizer(src, tokens) {
+                const rule = /^(#[a-zA-Z0-9]+)\s?/
+                const match = rule.exec(src)
+
+                console.log("mention...", match)
+                if (match) {
+                    const token = {
+                        type: 'mention',
                         raw: match[0],
                         text: match[1],
                         tokens: [],
@@ -80,10 +112,11 @@ function markedInternalLink() {
                 }
             },
             renderer(token) {
-                return `[[<wiki data-href="${token.text}">${token.text}</wiki>]]`;
+                console.log("men....", token);
+                return `<span class="mention" data-mention="${token.text}">${token.text}</span>`;
             },
-        },]
-    };
+        }]
+    }
 }
 
 // marked.use(customHeadingId());
@@ -91,6 +124,8 @@ function markedInternalLink() {
 
 marked.use(markedInternalLink());
 console.log("marked internalLink", marked.parse("[[[[xxxx-xxxx]]"))
+marked.use(markedMention());
+console.log("marked markedMention", marked.parse("#aaa "))
 
 /**
  * Parses markdown string to an HTML.

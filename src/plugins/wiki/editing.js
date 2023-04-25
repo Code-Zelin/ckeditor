@@ -189,14 +189,16 @@ export function _toMentionAttribute(viewElementOrMention, data) {
 
 
 	// 从元素中 找到 对应的属性
-	const dataMention = viewElementOrMention.getAttribute('data-href');
+	const dataName = viewElementOrMention.getAttribute('data-href');
+	const dataId = viewElementOrMention.getAttribute('data-wiki');
 	const textNode = viewElementOrMention.getChild(0);
 	// Do not convert empty mentions.
 	if (!textNode) {
 		return;
 	}
 	const baseMentionData = {
-		id: dataMention,
+		id: dataId,
+		name: dataName,
 		_text: textNode.data
 	};
 	return _addMentionAttributes(baseMentionData, data);
@@ -334,8 +336,12 @@ export default class AbbreviationEditing extends Plugin {
 				const { writer } = conversionApi;
 				console.log('modelAttributeValue', modelAttributeValue);
 				// <wiki href="xxx"></wiki>
-				return writer.createAttributeElement('wiki', {
-					'data-href': modelAttributeValue.id
+				return writer.createAttributeElement('a', {
+					'data-href': modelAttributeValue.name,
+					'data-origin': `[[${modelAttributeValue.name}]]`,
+					'data-type': "wiki",
+					// 没啥用
+					// 'data-wiki': modelAttributeValue.id,
 				}, {
 					id: modelAttributeValue.uid,
 					priority: 20
@@ -346,8 +352,9 @@ export default class AbbreviationEditing extends Plugin {
 		// Conversion from a view element to a model attribute
 		conversion.for('upcast').elementToAttribute({
 			view: {
-				name: 'wiki',
-				attributes: ['data-href']
+				name: 'a',
+				key: 'data-wiki',
+				attributes: ['data-href', 'data-origin', 'data-type']
 			},
 			model: {
 				key: 'wiki',
