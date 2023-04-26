@@ -36,8 +36,8 @@
 		</div>
 		<div class="centered">
 			<div class="row row-editor">
-				<div class="editor-container">
-					<div class="editor" id="editor">
+				<div class="editor-container" id="editor">
+					<div class="editor">
 					</div>
 				</div>
 			</div>
@@ -100,56 +100,19 @@
 			return new Promise((resolve) => {
 				
 				setTimeout(() => {
-					const wikiItems = [
-						{
-							id: "swarley",
-							userId: "1",
-							name: "Barney Stinson",
-							link: "https://www.imdb.com/title/tt0460649/characters/nm0000439",
-						},
-						{
-							id: "#lilypad",
-							userId: "2",
-							name: "Lily Aldrin",
-							link: "https://www.imdb.com/title/tt0460649/characters/nm0004989",
-						},
-						{
-							id: "marry",
-							userId: "3",
-							name: "Marry Ann Lewis",
-							link: "https://www.imdb.com/title/tt0460649/characters/nm1130627",
-						},  
-						{
-							id: "marshmallow",
-							userId: "4",
-							name: "Marshall Eriksen",
-							link: "https://www.imdb.com/title/tt0460649/characters/nm0781981",
-						},
-						{
-							id: "rsparkles",
-							userId: "5",
-							name: "Robin Scherbatsky",
-							link: "https://www.imdb.com/title/tt0460649/characters/nm1130627",
-						},
-						{
-							id: "tdog",
-							userId: "6",
-							name: "Ted Mosby",
-							link: "https://www.imdb.com/title/tt0460649/characters/nm1102140",
-						},
-					];
-					console.log("queryText..,", queryText);
+					const wikiItems = [{"articleId":1,"articleName":"第一篇空间","spaceId":1,"articleType":2},{"articleId":2,"articleName":"规章制度空间","spaceId":2,"articleType":2},{"articleId":3,"articleName":"农运无口车","spaceId":1,"articleType":1},{"articleId":4,"articleName":"整先些府油","spaceId":1,"articleType":1},{"articleId":5,"articleName":"办历现干就角","spaceId":1,"articleType":1},{"articleId":6,"articleName":"区及部面美","spaceId":1,"articleType":1},{"articleId":7,"articleName":"行史花先大七","spaceId":1,"articleType":1},{"articleId":9,"articleName":"亲育又走时格","spaceId":1,"articleType":1},{"articleId":10,"articleName":"亲育又走时格","spaceId":1,"articleType":1},{"articleId":11,"articleName":"离以太和","spaceId":1,"articleType":1}];
 
 					if (queryText.startsWith("\[\[")) {
 						queryText = queryText.slice(2)
 					}
 					console.log("queryText>>>>", queryText);
 
-					const itemsToDisplay = wikiItems
-						// Filter out the full list of all items to only those matching the query text.
-						.filter(item => isItemMatching(item, queryText))
-						// Return 10 items max - needed for generic queries when the list may contain hundreds of elements.
-						.slice(0, 10);
+					const itemsToDisplay = wikiItems.map(item => ({
+						id: item.articleId,
+						name: item.articleName,
+						type: item.articleType,
+						spaceId: item.spaceId,
+					}))
 
 					console.log("items>>>>", itemsToDisplay)
 
@@ -220,7 +183,26 @@
 	<script>
 		document.getElementById("editor").addEventListener("click", (e) => {
 
-			console.log(e.target);
+			console.log(1111111, e.target, e.currentTarget);
+			const { 
+				// wiki
+				wiki, id,  spaceid, origin, type,
+				// 标签
+				mention
+			} = e.target.dataset || {};
+			if (wiki === "wiki") {
+				console.log(id, spaceid, type, origin)
+				const _id = Number(id);
+				const _spaceid = Number(spaceid);
+				const _type = Number(type);
+				if (_id && _spaceid && _type) {
+					console.log(123123)
+				} else {
+					console.log(98790);
+				}
+			} else if (e.target.classList.contains("mention")) {
+				console.log("mention....", mention)
+			}
 			
 		})
 	</script>

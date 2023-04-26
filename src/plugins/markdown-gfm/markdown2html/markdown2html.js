@@ -81,7 +81,8 @@ function markedInternalLink() {
                 }
             },
             renderer(token) {
-                return `[[<a data-href="${token.text}" data-type="wiki" data-origin="${token.raw}">${token.text}</a>]]`;
+                // 解析出来的wiki标签，没有id，spaceId，type，此时点击时需要调用接口，根据origin获取对应的信息
+                return `[[<a data-wiki="wiki" data-id="0" data-spaceid="0" data-type="0" data-origin="${token.raw}">${token.text}</a>]]`;
             },
         },]
     };

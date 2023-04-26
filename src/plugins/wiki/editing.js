@@ -183,14 +183,11 @@ export function _addMentionAttributes(baseMentionData, data) {
  * @internal
 */
 export function _toMentionAttribute(viewElementOrMention, data) {
-
-	// const link = viewElementOrMention.getAttribute('href');
-	// return link;
-
-
 	// 从元素中 找到 对应的属性
-	const dataName = viewElementOrMention.getAttribute('data-href');
-	const dataId = viewElementOrMention.getAttribute('data-wiki');
+	const dataId = viewElementOrMention.getAttribute('data-id');
+	const dataSpaceId = viewElementOrMention.getAttribute('data-spaceid');
+	const dataType = viewElementOrMention.getAttribute('data-type');
+	const dataOrigin = viewElementOrMention.getAttribute('data-origin');
 	const textNode = viewElementOrMention.getChild(0);
 	// Do not convert empty mentions.
 	if (!textNode) {
@@ -198,7 +195,9 @@ export function _toMentionAttribute(viewElementOrMention, data) {
 	}
 	const baseMentionData = {
 		id: dataId,
-		name: dataName,
+		name: dataOrigin.slice(2, -2),
+		spaceId: dataSpaceId,
+		type: dataType,
 		_text: textNode.data
 	};
 	return _addMentionAttributes(baseMentionData, data);
@@ -337,11 +336,11 @@ export default class AbbreviationEditing extends Plugin {
 				console.log('modelAttributeValue', modelAttributeValue);
 				// <wiki href="xxx"></wiki>
 				return writer.createAttributeElement('a', {
-					'data-href': modelAttributeValue.name,
+					'data-id': modelAttributeValue.id,
+					"data-spaceid": modelAttributeValue.spaceId,
+					"data-type": modelAttributeValue.type,
 					'data-origin': `[[${modelAttributeValue.name}]]`,
-					'data-type': "wiki",
-					// 没啥用
-					// 'data-wiki': modelAttributeValue.id,
+					'data-wiki': "wiki",
 				}, {
 					id: modelAttributeValue.uid,
 					priority: 20
@@ -354,7 +353,7 @@ export default class AbbreviationEditing extends Plugin {
 			view: {
 				name: 'a',
 				key: 'data-wiki',
-				attributes: ['data-href', 'data-origin', 'data-type']
+				attributes: ['data-id', 'data-origin', 'data-type', "data-spaceid", "data-wiki"]
 			},
 			model: {
 				key: 'wiki',
