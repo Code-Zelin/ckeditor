@@ -70,7 +70,6 @@ export default function blockAutoformatEditing(editor, plugin, pattern, callback
             return;
         }
         const range = first(editor.model.document.selection.getRanges());
-        console.log("range.....", range);
         if (!range.isCollapsed) {
             return;
         }
@@ -78,7 +77,6 @@ export default function blockAutoformatEditing(editor, plugin, pattern, callback
             return;
         }
         const changes = Array.from(editor.model.document.differ.getChanges());
-        console.log("changess", changes);
         const entry = changes[0];
         // Typing is represented by only a single change.
         if (changes.length != 1 || entry.type !== 'insert' || entry.name != '$text' || entry.length != 1) {
@@ -86,7 +84,6 @@ export default function blockAutoformatEditing(editor, plugin, pattern, callback
         }
         const blockToFormat = entry.position.parent;
 
-        console.log('block to format', blockToFormat)
         // Block formatting should be disabled in codeBlocks (#5800).
         if (blockToFormat.is('element', 'codeBlock')) {
             return;
@@ -103,15 +100,12 @@ export default function blockAutoformatEditing(editor, plugin, pattern, callback
             return;
         }
         const firstNode = blockToFormat.getChild(0);
-        console.log("firstNode...", firstNode);
         const firstNodeRange = editor.model.createRangeOn(firstNode);
-        console.log("first node range", firstNodeRange);
         // Range is only expected to be within or at the very end of the first text node.
         if (!firstNodeRange.containsRange(range) && !range.end.isEqual(firstNodeRange.end)) {
             return;
         }
         const match = pattern.exec(firstNode.data.substr(0, range.end.offset));
-        console.log("match...", pattern, match, firstNode.data.substr(0, range.end.offset))
         // ...and this text node's data match the pattern.
         if (!match) {
             return;

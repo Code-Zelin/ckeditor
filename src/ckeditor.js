@@ -4,7 +4,6 @@
  */
 import ClassicEditor from '@ckeditor/ckeditor5-editor-classic/src/classiceditor.js';
 import Alignment from '@ckeditor/ckeditor5-alignment/src/alignment.js';
-import AutoImage from '@ckeditor/ckeditor5-image/src/autoimage.js';
 import AutoLink from '@ckeditor/ckeditor5-link/src/autolink.js';
 import Autosave from '@ckeditor/ckeditor5-autosave/src/autosave.js';
 import BlockQuote from '@ckeditor/ckeditor5-block-quote/src/blockquote.js';
@@ -26,11 +25,10 @@ import Highlight from '@ckeditor/ckeditor5-highlight/src/highlight.js';
 import HorizontalLine from '@ckeditor/ckeditor5-horizontal-line/src/horizontalline.js';
 import HtmlComment from '@ckeditor/ckeditor5-html-support/src/htmlcomment.js';
 import HtmlEmbed from '@ckeditor/ckeditor5-html-embed/src/htmlembed.js';
+import AutoImage from '@ckeditor/ckeditor5-image/src/autoimage.js';
 import Image from '@ckeditor/ckeditor5-image/src/image.js';
-import ImageCaption from '@ckeditor/ckeditor5-image/src/imagecaption.js';
-import ImageInsert from '@ckeditor/ckeditor5-image/src/imageinsert.js';
-import ImageResize from '@ckeditor/ckeditor5-image/src/imageresize.js';
-import ImageStyle from '@ckeditor/ckeditor5-image/src/imagestyle.js';
+// import ImageInsert from '@ckeditor/ckeditor5-image/src/imageinsert.js';
+// import ImageResize from '@ckeditor/ckeditor5-image/src/imageresize.js';
 import ImageToolbar from '@ckeditor/ckeditor5-image/src/imagetoolbar.js';
 import ImageUpload from '@ckeditor/ckeditor5-image/src/imageupload.js';
 import Indent from '@ckeditor/ckeditor5-indent/src/indent.js';
@@ -40,9 +38,6 @@ import Link from '@ckeditor/ckeditor5-link/src/link.js';
 import LinkImage from '@ckeditor/ckeditor5-link/src/linkimage.js';
 import List from '@ckeditor/ckeditor5-list/src/list.js';
 import ListProperties from '@ckeditor/ckeditor5-list/src/listproperties.js';
-
-import MediaEmbed from '@ckeditor/ckeditor5-media-embed/src/mediaembed.js';
-import MediaEmbedToolbar from '@ckeditor/ckeditor5-media-embed/src/mediaembedtoolbar.js';
 import Mention from '@ckeditor/ckeditor5-mention/src/mention.js';
 import PageBreak from '@ckeditor/ckeditor5-page-break/src/pagebreak.js';
 import Paragraph from '@ckeditor/ckeditor5-paragraph/src/paragraph.js';
@@ -65,11 +60,15 @@ import TextTransformation from '@ckeditor/ckeditor5-typing/src/texttransformatio
 import TodoList from '@ckeditor/ckeditor5-list/src/todolist';
 import Underline from '@ckeditor/ckeditor5-basic-styles/src/underline.js';
 import WordCount from '@ckeditor/ckeditor5-word-count/src/wordcount.js';
+import Base64UploadAdapter from '@ckeditor/ckeditor5-upload/src/adapters/base64uploadadapter.js';
 
-import Abbreviation from './plugins/abbreviation/index';					// ADDED
 import InternalLink from './plugins/wiki/index';					// ADDED
 import Autoformat from './plugins//autoformat/autoformat';
 import Markdown from './plugins/markdown-gfm/markdown.js';
+
+
+import MediaEmbed from './plugins/media-embed/src/mediaembed.js';
+import MediaEmbedToolbar from './plugins/media-embed/src/mediaembedtoolbar.js';
 
 class Editor extends ClassicEditor {}
 
@@ -80,6 +79,7 @@ Editor.builtinPlugins = [
 	AutoImage,
 	AutoLink,
 	Autosave,
+	Base64UploadAdapter,
 	BlockQuote,
 	Bold,
 	CloudServices,
@@ -100,10 +100,8 @@ Editor.builtinPlugins = [
 	HtmlComment,
 	HtmlEmbed,
 	Image,
-	ImageCaption,
-	ImageInsert,
-	ImageResize,
-	ImageStyle,
+	// ImageResize,
+	// ImageStyle,
 	ImageToolbar,
 	ImageUpload,
 	Indent,
@@ -138,7 +136,6 @@ Editor.builtinPlugins = [
 	TodoList,
 	Underline,
 	WordCount,
-	Abbreviation,
 	InternalLink,
 ];
 
@@ -170,7 +167,6 @@ Editor.defaultConfig = {
 			'code',
 			'codeBlock',
 			'|',
-			'imageInsert',
 			'imageUpload',
 			'blockQuote',
 			'insertTable',
@@ -183,7 +179,6 @@ Editor.defaultConfig = {
 			'|',
 			'findAndReplace',
 			'|',
-			'abbreviation',
 			'wiki'
 		]
 	},
@@ -191,10 +186,6 @@ Editor.defaultConfig = {
 	image: {
 		toolbar: [
 			'imageTextAlternative',
-			'toggleImageCaption',
-			'imageStyle:inline',
-			'imageStyle:block',
-			'imageStyle:side',
 			'linkImage'
 		]
 	},
@@ -206,7 +197,7 @@ Editor.defaultConfig = {
 			'tableCellProperties',
 			'tableProperties'
 		]
-	}
+	},
 };
 
 export default Editor;
