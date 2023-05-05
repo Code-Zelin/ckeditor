@@ -49,12 +49,21 @@ const turndownService = new TurndownService({
 turndownService.use([
     gfm,
     todoList,
-    wikiLink
+    wikiLink,
+    mediaEmbed
 ]);
+
 /**
  * Parses HTML to a markdown.
  */
 export default function html2markdown(html) {
+
+    const matchHtml = html.match(/^<figure class="media"><oembed url="(\S+)"><\/oembed><\/figure>$/)
+    // 必须有内容，否则会认为是空标签，不做展示
+    if (matchHtml[1].startsWith("http")) {
+        html = `<figure class="media"><oembed url="${matchHtml[1]}">自定义上传<\/oembed><\/figure>`
+    }
+
     return turndownService.turndown(html);
 }
 export { turndownService };
@@ -78,6 +87,24 @@ function wikiLink(turndownService) {
         replacement(content, node) {
             console.log('wikiLink', content, node)
             return `${content}`;
+        }
+    });
+}
+// This is a copy of the original taskListItems rule from turdown-plugin-gfm, with minor changes.
+function mediaEmbed(turndownService) {
+    turndownService.addRule('mediaEmbed', {
+        // <figure class="media"><oembed url="https://www.youtube.com/watch?v=5QtHtDkHT5Y"></oembed></figure>
+        filter(node) {
+            const firstChild = node.childNodes[0];
+            return node.nodeName === 'FIGURE' && node.className === "media"
+                && firstChild && firstChild.nodeName === 'OEMBED'
+                && firstChild.getAttribute && firstChild.getAttribute("url");
+        },
+        replacement(content, node) {
+            if (node.childNodes[0].getAttribute) {
+                return `$$${node.childNodes[0].getAttribute("url")}$$`
+            }
+            return `$$${content}$$`;
         }
     });
 }
