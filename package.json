@@ -2,7 +2,7 @@
   "name": "ckeditor5-zelin-build",
   "author": "CKSource",
   "description": "A custom CKEditor 5 build made by the CKEditor 5 online builder.",
-  "version": "0.0.7",
+  "version": "0.0.9-fix",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "./build/ckeditor.js",
   "devDependencies": {
@@ -63,6 +63,7 @@
     "build": "webpack --mode production"
   },
   "dependencies": {
+    "@ckeditor/ckeditor5-upload": "^36.0.1",
     "marked-mfm": "^0.5.0"
   }
 }

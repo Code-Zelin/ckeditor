@@ -60,7 +60,7 @@ export default function html2markdown(html) {
 
     const matchHtml = html.match(/^<figure class="media"><oembed url="(\S+)"><\/oembed><\/figure>$/)
     // 必须有内容，否则会认为是空标签，不做展示
-    if (matchHtml[1].startsWith("http")) {
+    if (matchHtml && matchHtml[1].startsWith("http")) {
         html = `<figure class="media"><oembed url="${matchHtml[1]}">自定义上传<\/oembed><\/figure>`
     }
 
