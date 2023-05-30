@@ -57,11 +57,16 @@ turndownService.use([
  * Parses HTML to a markdown.
  */
 export default function html2markdown(html) {
+    console.log("html2md", html);
 
-    const matchHtml = html.match(/^<figure class="media"><oembed url="(\S+)"><\/oembed><\/figure>$/)
+    const matchHtml = html.matchAll(/<figure class="media"><oembed url="(\S+)"><\/oembed>\<\/figure>/g)
     // 必须有内容，否则会认为是空标签，不做展示
-    if (matchHtml && matchHtml[1].startsWith("http")) {
-        html = `<figure class="media"><oembed url="${matchHtml[1]}">自定义上传<\/oembed><\/figure>`
+    if (matchHtml) {
+        for(let item of matchHtml) {
+            const originHtml = item[0];
+            const url = item[1];
+            html = html.replace(originHtml, `<figure class="media"><oembed url="${url}">自定义上传<\/oembed><\/figure>`)
+        }
     }
 
     return turndownService.turndown(html);
@@ -96,6 +101,7 @@ function mediaEmbed(turndownService) {
         // <figure class="media"><oembed url="https://www.youtube.com/watch?v=5QtHtDkHT5Y"></oembed></figure>
         filter(node) {
             const firstChild = node.childNodes[0];
+            console.log("mediaEmbed filter....", node, firstChild)
             return node.nodeName === 'FIGURE' && node.className === "media"
                 && firstChild && firstChild.nodeName === 'OEMBED'
                 && firstChild.getAttribute && firstChild.getAttribute("url");

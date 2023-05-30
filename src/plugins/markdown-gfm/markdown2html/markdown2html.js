@@ -61,14 +61,12 @@ function markedInternalLink() {
             name: 'internalLink',
             level: 'inline',
             start(src) {
-                console.log("internalLink start....", src);
                 return src.indexOf('[[')
             },
             tokenizer(src, tokens) {
                 const rule = /^(\\\[|\[){2}([^\]\\]+)(\\\]|\]){2}/
                 const match = rule.exec(src)
 
-                console.log("match", match)
                 // match:: ['[[[[xxxx-xxxx]]', '[[xxxx-xxxx', index: 0, input: '[[[[xxxx-xxxx]]', groups: undefined]
                 if (match) {
                     const token = {
@@ -94,14 +92,12 @@ function markedMention() {
             name: 'mention',
             level: 'inline',
             start(src) {
-                console.log("markedMention start....", src);
                 return src.indexOf('#')
             },
             tokenizer(src, tokens) {
                 const rule = /^(#[a-zA-Z0-9]+)\s?/
                 const match = rule.exec(src)
 
-                console.log("mention...", match)
                 if (match) {
                     const token = {
                         type: 'mention',
@@ -113,44 +109,37 @@ function markedMention() {
                 }
             },
             renderer(token) {
-                console.log("men....", token);
                 return `<span class="mention" data-mention="${token.text}">${token.text}</span>`;
             },
         }]
     }
 }
 
-const regex = new RegExp(
-    // Prefix.
-    /\b(?:(?:https?|ftp):\/\/|www\.)/.source +
-        // Domain name.
-        /(?![-_])(?:[-_a-z0-9\u00a1-\uffff]{1,63}\.)+(?:[a-z\u00a1-\uffff]{2,63})/.source +
-        // The rest.
-        /(?:[^\s<>]*)/.source, 'gi');
+
 function markedMediaEmbed() {
     return {
         extensions: [{
             name: 'mediaEmbed',
             level: 'inline',
-            start(src) {
-                console.log("mediaEmbed start....", src);
-                return src.indexOf('$$')
-            },
             tokenizer(src, tokens) {
-                const rule = /^\${2}([^\$]+)\${2}/
+                const rule = /^ *\$\$([^\$]+)\$\$/
                 const match = rule.exec(src)
 
-                console.log("markedMediaEmbed match", match)
                 // match::  ['$$https://www.youtube.com/watch?v=5QtHtDkHT5Y$$', 'https://www.youtube.com/watch?v=5QtHtDkHT5Y', index: 0, input: '$$https://www.youtube.com/watch?v=5QtHtDkHT5Y$$', groups: undefined]
                 // match[1]必须是一个url才能解析
-                if (match && regex.test(match[1])) {
-                    const token = {
-                        type: 'mediaEmbed',
-                        raw: match[0],
-                        text: match[1],
-                        tokens: [],
-                    }
-                    return token
+                if (match) {
+                    const url = match[1];
+                    const origin = match[0];
+                    // if (regex.test(url)) {
+                        const token = {
+                            type: 'mediaEmbed',
+                            raw: origin,
+                            text: url,
+                            tokens: [],
+                        }
+                        console.log("mediaEmbed. token>>>", token);
+                        return token
+                    // }
                 }
             },
             renderer(token) {
@@ -165,11 +154,11 @@ function markedMediaEmbed() {
 // console.log("marked heading", marked.parse("# heading {#custom-id}"))
 
 marked.use(markedInternalLink());
-console.log("marked internalLink", marked.parse("[[[[xxxx-xxxx]]"))
+// console.log("marked internalLink", marked.parse("[[[[xxxx-xxxx]]"))
 marked.use(markedMention());
-console.log("marked markedMention", marked.parse("#aaa "))
+// console.log("marked markedMention", marked.parse("#aaa "))
 marked.use(markedMediaEmbed());
-console.log("marked markedMediaEmbed", marked.parse("$$https://www.youtube.com/watch?v=5QtHtDkHT5Y$$"))
+// console.log("marked markedMediaEmbed", marked.parse("$$https://www.youtube.com/watch?v=5QtHtDkHT5Y$$"))
 
 /**
  * Parses markdown string to an HTML.
