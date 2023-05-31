@@ -330,6 +330,7 @@ class Media {
 			return url;
 		}
 
-		return 'https://' + url;
+		// return 'https://' + url;
+		return url;
 	}
 }
