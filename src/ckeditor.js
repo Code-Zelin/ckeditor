@@ -14,31 +14,20 @@ import CodeBlock from '@ckeditor/ckeditor5-code-block/src/codeblock.js';
 import DataFilter from '@ckeditor/ckeditor5-html-support/src/datafilter.js';
 import DataSchema from '@ckeditor/ckeditor5-html-support/src/dataschema.js';
 import Essentials from '@ckeditor/ckeditor5-essentials/src/essentials.js';
-import FindAndReplace from '@ckeditor/ckeditor5-find-and-replace/src/findandreplace.js';
-import FontBackgroundColor from '@ckeditor/ckeditor5-font/src/fontbackgroundcolor.js';
-import FontColor from '@ckeditor/ckeditor5-font/src/fontcolor.js';
-import FontFamily from '@ckeditor/ckeditor5-font/src/fontfamily.js';
-import FontSize from '@ckeditor/ckeditor5-font/src/fontsize.js';
 import GeneralHtmlSupport from '@ckeditor/ckeditor5-html-support/src/generalhtmlsupport.js';
 import Heading from '@ckeditor/ckeditor5-heading/src/heading.js';
-import Highlight from '@ckeditor/ckeditor5-highlight/src/highlight.js';
 import HorizontalLine from '@ckeditor/ckeditor5-horizontal-line/src/horizontalline.js';
 import HtmlComment from '@ckeditor/ckeditor5-html-support/src/htmlcomment.js';
 import HtmlEmbed from '@ckeditor/ckeditor5-html-embed/src/htmlembed.js';
 import AutoImage from '@ckeditor/ckeditor5-image/src/autoimage.js';
 import Image from '@ckeditor/ckeditor5-image/src/image.js';
-// import ImageInsert from '@ckeditor/ckeditor5-image/src/imageinsert.js';
-// import ImageResize from '@ckeditor/ckeditor5-image/src/imageresize.js';
 import ImageToolbar from '@ckeditor/ckeditor5-image/src/imagetoolbar.js';
 import ImageUpload from '@ckeditor/ckeditor5-image/src/imageupload.js';
-import Indent from '@ckeditor/ckeditor5-indent/src/indent.js';
-import IndentBlock from '@ckeditor/ckeditor5-indent/src/indentblock.js';
 import Italic from '@ckeditor/ckeditor5-basic-styles/src/italic.js';
 import Link from '@ckeditor/ckeditor5-link/src/link.js';
 import LinkImage from '@ckeditor/ckeditor5-link/src/linkimage.js';
-import List from '@ckeditor/ckeditor5-list/src/list.js';
-import ListProperties from '@ckeditor/ckeditor5-list/src/listproperties.js';
-import Mention from '@ckeditor/ckeditor5-mention/src/mention.js';
+
+// import Mention from '@ckeditor/ckeditor5-mention/src/mention.js';
 import PageBreak from '@ckeditor/ckeditor5-page-break/src/pagebreak.js';
 import Paragraph from '@ckeditor/ckeditor5-paragraph/src/paragraph.js';
 import PasteFromOffice from '@ckeditor/ckeditor5-paste-from-office/src/pastefromoffice.js';
@@ -49,15 +38,8 @@ import Strikethrough from '@ckeditor/ckeditor5-basic-styles/src/strikethrough.js
 import Style from '@ckeditor/ckeditor5-style/src/style.js';
 import Subscript from '@ckeditor/ckeditor5-basic-styles/src/subscript.js';
 import Superscript from '@ckeditor/ckeditor5-basic-styles/src/superscript.js';
-import Table from '@ckeditor/ckeditor5-table/src/table.js';
-import TableCaption from '@ckeditor/ckeditor5-table/src/tablecaption.js';
-import TableCellProperties from '@ckeditor/ckeditor5-table/src/tablecellproperties';
-import TableColumnResize from '@ckeditor/ckeditor5-table/src/tablecolumnresize.js';
-import TableProperties from '@ckeditor/ckeditor5-table/src/tableproperties';
-import TableToolbar from '@ckeditor/ckeditor5-table/src/tabletoolbar.js';
 import TextPartLanguage from '@ckeditor/ckeditor5-language/src/textpartlanguage.js';
 import TextTransformation from '@ckeditor/ckeditor5-typing/src/texttransformation.js';
-import TodoList from '@ckeditor/ckeditor5-list/src/todolist';
 import Underline from '@ckeditor/ckeditor5-basic-styles/src/underline.js';
 import WordCount from '@ckeditor/ckeditor5-word-count/src/wordcount.js';
 import Base64UploadAdapter from '@ckeditor/ckeditor5-upload/src/adapters/base64uploadadapter.js';
@@ -66,9 +48,13 @@ import InternalLink from './plugins/wiki/index';					// ADDED
 import Autoformat from './plugins//autoformat/autoformat';
 import Markdown from './plugins/markdown-gfm/markdown.js';
 
-
+import Mention from "./plugins/mention/mention";
 import MediaEmbed from './plugins/media-embed/src/mediaembed.js';
 import MediaEmbedToolbar from './plugins/media-embed/src/mediaembedtoolbar.js';
+
+import List from './plugins/list/list.js';
+import ListProperties from './plugins/list/listproperties.js';
+import TodoList from './plugins/list/todolist';
 
 class Editor extends ClassicEditor {}
 
@@ -88,14 +74,8 @@ Editor.builtinPlugins = [
 	DataFilter,
 	DataSchema,
 	Essentials,
-	FindAndReplace,
-	FontBackgroundColor,
-	FontColor,
-	FontFamily,
-	FontSize,
 	GeneralHtmlSupport,
 	Heading,
-	Highlight,
 	HorizontalLine,
 	HtmlComment,
 	HtmlEmbed,
@@ -104,8 +84,6 @@ Editor.builtinPlugins = [
 	// ImageStyle,
 	ImageToolbar,
 	ImageUpload,
-	Indent,
-	IndentBlock,
 	Italic,
 	Link,
 	LinkImage,
@@ -125,12 +103,6 @@ Editor.builtinPlugins = [
 	Style,
 	Subscript,
 	Superscript,
-	Table,
-	TableCaption,
-	TableCellProperties,
-	TableColumnResize,
-	TableProperties,
-	TableToolbar,
 	TextPartLanguage,
 	TextTransformation,
 	TodoList,
@@ -146,38 +118,26 @@ Editor.defaultConfig = {
 			'undo',
 			'redo',
 			'|',
-		'sourceEditing',
-			'|',
+			'sourceEditing',
 			'heading',
 			'|',
-			'fontColor',
-			'fontBackgroundColor',
-			'fontSize',
-			'fontFamily',
 			'bold',
 			'italic',
 			'strikethrough',
 			'underline',
 			'removeFormat',
-			'alignment',
-			'|',
-			'outdent',
-			'indent',
 			'|',
 			'code',
 			'codeBlock',
 			'|',
 			'imageUpload',
 			'blockQuote',
-			'insertTable',
 			'mediaEmbed',
 			'link',
 			'|',
 			'bulletedList',
 			'numberedList',
 			'todoList',
-			'|',
-			'findAndReplace',
 			'|',
 			'wiki'
 		]
@@ -187,15 +147,6 @@ Editor.defaultConfig = {
 		toolbar: [
 			'imageTextAlternative',
 			'linkImage'
-		]
-	},
-	table: {
-		contentToolbar: [
-			'tableColumn',
-			'tableRow',
-			'mergeTableCells',
-			'tableCellProperties',
-			'tableProperties'
 		]
 	},
 };
