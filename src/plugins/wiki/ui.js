@@ -158,7 +158,7 @@ export function createRegExp() {
     // The pattern matches up to the caret (end of string switch - $).
     //               (0:      opening sequence       )(1:   marker  )(2:                typed mention              )$
     // const pattern = ``;
-    return new RegExp(/(?:^|[ \(\[{"'])(\[\[)(.*)$/, 'u');
+    return new RegExp(/(?:^|[ \(\[{"'])(\[\[)([^\[\]]*)$/, 'u');
 }
 /**
  * Creates a test callback for the marker to be used in the text watcher instance.
