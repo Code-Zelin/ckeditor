@@ -95,7 +95,7 @@ function markedMention() {
                 return src.indexOf('#')
             },
             tokenizer(src, tokens) {
-                const rule = /^(#[^#]+)\s?/
+                const rule = /^(#[^#\s]+)\s?/
                 const match = rule.exec(src)
 
                 if (match) {

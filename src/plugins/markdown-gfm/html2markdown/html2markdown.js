@@ -108,9 +108,9 @@ function mediaEmbed(turndownService) {
         },
         replacement(content, node) {
             if (node.childNodes[0].getAttribute) {
-                return `$$${node.childNodes[0].getAttribute("url")}$$`
+                return `\n$$${node.childNodes[0].getAttribute("url")}$$\n`
             }
-            return `$$${content}$$`;
+            return `\n$$${content}$$\n`;
         }
     });
 }
