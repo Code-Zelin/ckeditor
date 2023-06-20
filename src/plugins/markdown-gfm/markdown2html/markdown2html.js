@@ -68,6 +68,7 @@ function markedInternalLink() {
                 const match = rule.exec(src)
 
                 // match:: ['[[[[xxxx-xxxx]]', '[[xxxx-xxxx', index: 0, input: '[[[[xxxx-xxxx]]', groups: undefined]
+                console.log("markedInternalLink>>>>match,,,,", match);
                 if (match) {
                     const token = {
                         type: 'internalLink',

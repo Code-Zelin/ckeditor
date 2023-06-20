@@ -124,7 +124,6 @@ Editor.defaultConfig = {
 			'bold',
 			'italic',
 			'strikethrough',
-			'underline',
 			'removeFormat',
 			'|',
 			'code',

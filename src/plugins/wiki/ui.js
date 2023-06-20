@@ -124,9 +124,11 @@ function getLastValidMarkerInText(feedsWithPattern, text) {
     let lastValidMarker;
     for (const feed of feedsWithPattern) {
         const currentMarkerLastIndex = text.lastIndexOf(feed.marker);
+        console.log("getLastValidMarkerInText....", currentMarkerLastIndex, feed, text)
         if (currentMarkerLastIndex > 0 && !text.substring(currentMarkerLastIndex - 1).match(feed.pattern)) {
             continue;
         }
+        console.log("old lastValidMarker", lastValidMarker);
         if (!lastValidMarker || currentMarkerLastIndex >= lastValidMarker.position) {
             lastValidMarker = {
                 marker: feed.marker,
@@ -135,6 +137,7 @@ function getLastValidMarkerInText(feedsWithPattern, text) {
                 pattern: feed.pattern
             };
         }
+        console.log("newwww????", lastValidMarker);
     }
     return lastValidMarker;
 }
@@ -148,7 +151,7 @@ function getLastValidMarkerInText(feedsWithPattern, text) {
 export function createRegExp() {
     // \p{Ps} => \p{Open_Punctuation}  省略标点法；开放式标点
     // \p{Pi} => \p{Initial_Punctuation}  最初的标点符号
-    const openAfterCharacters = env.features.isRegExpUnicodePropertySupported ? '\\p{Ps}\\p{Pi}"\'' : '\\(\\[{"\'';
+    // const openAfterCharacters = env.features.isRegExpUnicodePropertySupported ? '\\p{Ps}\\p{Pi}"\'' : '\\(\\[{"\'';
     // The pattern consists of 3 groups:
     // - 0 (non-capturing): Opening sequence - start of the line, space or an opening punctuation character like "(" or "\"",
     // 开头序列 - 以行、空格或开头标点符号，如“(”或“\”，
@@ -158,7 +161,7 @@ export function createRegExp() {
     // The pattern matches up to the caret (end of string switch - $).
     //               (0:      opening sequence       )(1:   marker  )(2:                typed mention              )$
     // const pattern = ``;
-    return new RegExp(/(?:^|[ \(\[{"'])(\[\[)([^\[\]]*)$/, 'u');
+    return new RegExp(/(?:^|[ \(\[{"'])(\[\[)([^\[\]\s]*)$/, 'u');
 }
 /**
  * Creates a test callback for the marker to be used in the text watcher instance.
@@ -389,8 +392,18 @@ export default class WikiUI extends Plugin {
             console.log('marker definition', markerDefinition);
             console.log('marker range', markerRange.start.path, markerRange.end.path);
 
+            // 如果当前的内容不是[[xxxx]],需要将wiki移除掉
+            if (!/^\[\[[^\[\]\s]+\]\]$/.test(data.text)) {
+                console.log(123123);
+                // editor.model.change(writer => {
+                //     // console.log( '%c[Editing]%c Updating the marker.', 'color: purple', 'color: black' );
+                //     writer.removeAttribute("wiki", markerRange);
+                // });
+                
+            }
             if (checkIfStillInCompletionMode(editor)) {
                 const mentionMarker = editor.model.markers.get('wiki');
+                console.log("mentionMarker》》》》", mentionMarker)
                 // Update the marker - user might've moved the selection to other mention trigger.
                 editor.model.change(writer => {
                     // console.log( '%c[Editing]%c Updating the marker.', 'color: purple', 'color: black' );
