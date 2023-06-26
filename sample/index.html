@@ -171,19 +171,22 @@
 			// Make the search case-insensitive.
 			const searchString = queryText.toLowerCase();
 
+			const reg = new RegExp(`(${searchString})`, 'gi');
+			item.name = item.originName.replace(reg, `<span style="color: red; font-weight: bold;">$1</span>`)
+
 			// Include an item in the search results if name or username includes the current user input.
 			return (
-				item.name.toLowerCase().includes(searchString)
+				item.originName.toLowerCase().includes(searchString)
 			);
 		}
 
 		const items = [
-			{ id: '#swarley', userId: '1', name: 'Barney Stinson', link: 'https://www.imdb.com/title/tt0460649/characters/nm0000439' },
-			{ id: '#lilypad', userId: '2', name: 'Lily Aldrin', link: 'https://www.imdb.com/title/tt0460649/characters/nm0004989' },
-			{ id: '#marry', userId: '3', name: 'Marry Ann Lewis', link: 'https://www.imdb.com/title/tt0460649/characters/nm1130627' },
-			{ id: '#marshmallow', userId: '4', name: 'Marshall Eriksen', link: 'https://www.imdb.com/title/tt0460649/characters/nm0781981' },
-			{ id: '#rsparkles', userId: '5', name: 'Robin Scherbatsky', link: 'https://www.imdb.com/title/tt0460649/characters/nm1130627' },
-			{ id: '#tdog', userId: '6', name: 'Ted Mosby', link: 'https://www.imdb.com/title/tt0460649/characters/nm1102140' }
+			{ id: '#swarley', userId: '1', originName: 'Barney Stinson', link: 'https://www.imdb.com/title/tt0460649/characters/nm0000439' },
+			{ id: '#lilypad', userId: '2', originName: 'Lily Aldrin', link: 'https://www.imdb.com/title/tt0460649/characters/nm0004989' },
+			{ id: '#marry', userId: '3', originName: 'Marry Ann Lewis', link: 'https://www.imdb.com/title/tt0460649/characters/nm1130627' },
+			{ id: '#marshmallow', userId: '4', originName: 'Marshall Eriksen', link: 'https://www.imdb.com/title/tt0460649/characters/nm0781981' },
+			{ id: '#rsparkles', userId: '5', originName: 'Robin Scherbatsky', link: 'https://www.imdb.com/title/tt0460649/characters/nm1130627' },
+			{ id: '#tdog', userId: '6', originName: 'Ted Mosby', link: 'https://www.imdb.com/title/tt0460649/characters/nm1102140' }
 		];
 
 		function getFeedItems(queryText, list) {
@@ -197,6 +200,8 @@
 						.filter(item => isItemMatching(item, queryText))
 						// Return 10 items max - needed for generic queries when the list may contain hundreds of elements.
 						.slice(0, 10);
+
+					console.log("feed items....", itemsToDisplay, list);
 
 					resolve(itemsToDisplay);
 				}, 100);
@@ -231,6 +236,24 @@
 			});
 		}
 
+
+		function customMentionItemRenderer(item) {
+			const itemElement = document.createElement('span');
+
+			itemElement.classList.add('custom-item');
+			itemElement.id = `mention-list-item-id-${item.userId}`;
+			itemElement.innerHTML = `${item.name} `;
+
+			// const usernameElement = document.createElement('span');
+
+			// usernameElement.classList.add('custom-item-username');
+			// usernameElement.textContent = item.id;
+
+			// itemElement.appendChild(usernameElement);
+
+			return itemElement;
+		}
+
 		function customItemRenderer(item) {
 			const itemElement = document.createElement('span');
 
@@ -238,12 +261,12 @@
 			itemElement.id = `mention-list-item-id-${item.userId}`;
 			itemElement.textContent = `${item.name} `;
 
-			const usernameElement = document.createElement('span');
+			// const usernameElement = document.createElement('span');
 
-			usernameElement.classList.add('custom-item-username');
-			usernameElement.textContent = item.id;
+			// usernameElement.classList.add('custom-item-username');
+			// usernameElement.textContent = item.id;
 
-			itemElement.appendChild(usernameElement);
+			// itemElement.appendChild(usernameElement);
 
 			return itemElement;
 		}
@@ -265,7 +288,7 @@
 						{
 							marker: '#',
 							feed: (text) => getFeedItems(text, items),
-							itemRenderer: customItemRenderer
+							itemRenderer: customMentionItemRenderer
 						},
 					]
 				},
@@ -290,6 +313,27 @@
 			})
 			.then(editor => {
 				window.editor = editor;
+				editor.setData(`*   走指团建众作传打反土所
+*   asd
+*   qwe  
+    23
+
+1.  312
+2.  34
+3.  123
+4.  432
+
+*   [ ] ad
+*   [ ] 432
+*   [ ] 123  
+
+#swarley #swarley #swarley 
+
+$$https://www.youtube.com/watch?v=5QtHtDkHT5Y$$
+$$https://www.youtube.com/watch?v=cCYKRDv9raY$$
+    [123](http://baidu.com)
+
+`)
 				console.log(12312312312312312, editor.plugins.get('FileRepository'))
 
 				editor.plugins.get('FileRepository').createUploadAdapter = (loader) => {

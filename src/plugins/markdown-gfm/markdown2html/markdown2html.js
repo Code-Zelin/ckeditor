@@ -96,7 +96,7 @@ function markedMention() {
                 return src.indexOf('#')
             },
             tokenizer(src, tokens) {
-                const rule = /^(#[^#\s]+)\s?/
+                const rule = /^(#[^#\s]+)/
                 const match = rule.exec(src)
 
                 if (match) {
@@ -110,7 +110,7 @@ function markedMention() {
                 }
             },
             renderer(token) {
-                return `<span class="mention" data-mention="${token.text}">${token.text}</span>`;
+                return `<span class="mention" data-mention="${token.text}">${token.text}</span> `;
             },
         }]
     }
