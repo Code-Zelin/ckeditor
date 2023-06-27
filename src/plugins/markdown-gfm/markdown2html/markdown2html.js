@@ -110,7 +110,7 @@ function markedMention() {
                 }
             },
             renderer(token) {
-                return `<span class="mention" data-mention="${token.text}">${token.text}</span> `;
+                return `<span class="mention" data-mention="${token.text}">${token.text}</span>`;
             },
         }]
     }
